@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-05-18T21:11:25.871Z",
+  "assets": {
+    "jszip.min.js": {
+      "name": "JSZip",
+      "bytes": 97630,
+      "source": "node_modules/jszip/dist/jszip.min.js"
+    },
+    "pdf.min.js": {
+      "name": "PDF.js",
+      "bytes": 320004,
+      "source": "node_modules/pdfjs-dist/build/pdf.min.js"
+    },
+    "pdf.worker.min.js": {
+      "name": "PDF.js worker",
+      "bytes": 1087212,
+      "source": "node_modules/pdfjs-dist/build/pdf.worker.min.js"
+    },
+    "epub.min.js": {
+      "name": "EPUB.js",
+      "bytes": 223875,
+      "source": "node_modules/epubjs/dist/epub.min.js"
+    },
+    "marked.umd.js": {
+      "name": "Marked",
+      "bytes": 40390,
+      "source": "node_modules/marked/lib/marked.umd.js"
+    }
+  }
+}

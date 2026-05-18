@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智读 SmartRead - AI 智能阅读</title>
+    <meta name="description" content="融合AI能力的新一代电子阅读软件">
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="css/bookshelf.css?v=zlib-rebind-20260518a">
+    <link rel="stylesheet" href="css/reader.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/panels.css">
+    <link rel="stylesheet" href="css/chat.css">
+    <link rel="stylesheet" href="css/ai-panel.css">
+    <link rel="stylesheet" href="css/selection.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- 书架视图 -->
+        <div id="bookshelf-view" class="view active is-booting">
+            <main id="app-boot-splash" class="app-boot-splash" aria-live="polite">
+                <div>
+                    <div class="boot-brand">SmartRead</div>
+                    <h1>正在启动</h1>
+                    <p>正在进入本机书架。</p>
+                    <div class="boot-progress" aria-hidden="true"></div>
+                </div>
+            </main>
+            <header class="app-header">
+                <div class="logo">
+                    <svg class="logo-icon-svg" width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="34" height="34" rx="10" fill="url(#logo_grad)"/>
+                        <path d="M17 11.5C17 11.5 14.5 10 11 10C10.17 10 9.5 10.67 9.5 11.5V23C9.5 23.83 10.17 24.5 11 24.5C14.5 24.5 17 26 17 26" fill="white" fill-opacity="0.95"/>
+                        <path d="M17 11.5C17 11.5 19.5 10 23 10C23.83 10 24.5 10.67 24.5 11.5V23C24.5 23.83 23.83 24.5 23 24.5C19.5 24.5 17 26 17 26" fill="white" fill-opacity="0.75"/>
+                        <defs>
+                            <linearGradient id="logo_grad" x1="0" y1="0" x2="34" y2="34" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#3b82f6"/>
+                                <stop offset="1" stop-color="#06b6d4"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <h1>智读</h1>
+                </div>
+            </header>
+            <!-- 主内容区 -->
+            <div class="bookshelf-content">
+                <!-- 继续阅读 Hero -->
+                <section id="hero-section" class="hero-section hidden">
+                    <div id="hero-card" class="hero-card"></div>
+                </section>
+                <section id="mobile-home-actions" class="mobile-home-actions hidden" aria-label="快捷操作">
+                    <button id="mobile-action-continue" class="mobile-home-action primary" type="button" onclick="Bookshelf.openRecentBook()">
+                        <span class="mobile-action-icon">读</span>
+                        <span>
+                            <strong>继续阅读</strong>
+                            <small id="mobile-action-continue-sub">打开最近一本书</small>
+                        </span>
+                    </button>
+                    <button class="mobile-home-action" type="button" onclick="Bookshelf.requireSmartReadSignedIn('请先登录 SmartRead，再导入书籍。') && document.getElementById('file-input').click()">
+                        <span class="mobile-action-icon">入</span>
+                        <span>
+                            <strong>导入</strong>
+                            <small>本地书籍</small>
+                        </span>
+                    </button>
+                    <button class="mobile-home-action" type="button" onclick="Bookshelf.focusOnlineSearch()">
+                        <span class="mobile-action-icon">找</span>
+                        <span>
+                            <strong>找书</strong>
+                            <small>Z-Library</small>
+                        </span>
+                    </button>
+                    <button id="mobile-action-ai" class="mobile-home-action" type="button" onclick="Bookshelf.openAISettings()">
+                        <span class="mobile-action-icon">AI</span>
+                        <span>
+                            <strong>AI</strong>
+                            <small id="mobile-action-ai-sub">待配置</small>
+                        </span>
+                    </button>
+                </section>
+                <section id="mobile-dashboard-state" class="mobile-dashboard-state hidden" aria-label="移动端功能主页"></section>
+                <!-- 统计栏 -->
+                <div id="stats-panel" class="stats-panel">
+                    <div class="stat-item">
+                        <span class="stat-value" id="stat-total">0</span>
+                        <span class="stat-label">书籍总数</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="stat-reading">0</span>
+                        <span class="stat-label">正在阅读</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="stat-done">0</span>
+                        <span class="stat-label">已读完</span>
+                    </div>
+                </div>
+                <!-- 书架 -->
+                <section id="shelf-section" class="shelf-section">
+                    <div class="shelf-header">
+                        <h2 class="shelf-title">我的书架</h2>
+                        <span id="shelf-count" class="shelf-count"></span>
+                        <div class="header-actions">
+                            <div class="search-box">
+                                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                                <input id="search-input" class="search-input" type="search" enterkeyhint="search" placeholder="搜索书名..." aria-label="搜索书名" oninput="Bookshelf.search(this.value)">
+                                <button id="btn-local-search" class="search-submit" type="button" aria-label="搜索书名">搜</button>
+                            </div>
+                            <button id="btn-import" class="btn btn-primary"><span>＋</span> 导入书籍</button>
+                            <input type="file" id="file-input" accept=".txt,.epub,.pdf" multiple hidden>
+                        </div>
+                    </div>
+                    <div id="bookshelf-grid" class="bookshelf-grid"></div>
+                    <div id="empty-state" class="empty-state">
+                        <div class="empty-icon">📖</div>
+                        <p class="empty-title">书架空空如也</p>
+                        <p class="empty-sub">点击「导入书籍」添加你的第一本书</p>
+                    </div>
+                </section>
+            </div>
+        </div>
+        <!-- 阅读器视图（三栏布局） -->
+        <div id="reader-view" class="view">
+            <button id="mobile-menu-toggle" class="mobile-menu-toggle" onclick="App.toggleMobileMenu()" title="菜单" aria-label="菜单">
+                <span></span><span></span><span></span>
+            </button>
+            <div id="mobile-menu-scrim" class="mobile-menu-scrim hidden" onclick="App.closeMobileMenu()"></div>
+            <button id="mobile-reader-topbar" class="mobile-reader-back-only hidden" type="button" onclick="App.returnToBookshelf()" aria-label="返回书架">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+            </button>
+            <!-- 左侧工具栏 -->
+            <nav class="sidebar">
+                <button id="btn-back" class="sb-btn" title="返回书架" aria-label="返回书架">
+                    <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path><path d="M10 12h10"></path><path d="M4 5v14"></path></svg>
+                </button>
+                <div class="sb-sep"></div>
+                <button id="btn-toc" class="sb-btn" title="目录" aria-label="目录">
+                    <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg>
+                </button>
+                <button id="btn-theme" class="sb-btn" title="主题" aria-label="主题">
+                    <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+                </button>
+                <button id="btn-font-size" class="sb-btn" title="字体" aria-label="字体">Aa</button>
+                <button id="btn-magnifier" class="sb-btn" title="放大镜" aria-label="放大镜" aria-pressed="false">
+                    <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4.2-4.2"></path><path d="M11 8v6"></path><path d="M8 11h6"></path></svg>
+                </button>
+                <button id="btn-notes" class="sb-btn" title="笔记" aria-label="笔记">
+                    <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h12l4 4v12H4z"></path><path d="M16 4v4h4"></path><path d="M8 13h8"></path><path d="M8 17h5"></path></svg>
+                </button>
+                <button id="btn-map" class="sb-btn" title="图谱" aria-label="图谱">
+                    <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="3"></circle><circle cx="18" cy="7" r="3"></circle><circle cx="12" cy="18" r="3"></circle><path d="m8.5 7.2 7 1.5"></path><path d="m7.7 8.5 3 7"></path><path d="m16.4 9.4-3 6"></path></svg>
+                </button>
+                <div class="sb-spacer"></div>
+                <button id="btn-toggle-chat" class="sb-btn" title="聊天面板" aria-label="聊天面板" aria-controls="right-panel" aria-expanded="false">
+                    <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg>
+                </button>
+                <button id="btn-settings" class="sb-btn" title="设置" aria-label="设置">
+                    <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"></path><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.38 1.06V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.06-.38H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .38-1.06V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.42.2.77.5 1 .9.2.3.55.5.97.5H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15z"></path></svg>
+                </button>
+            </nav>
+            <!-- 左侧边栏（目录等） -->
+            <div id="left-sidebar" class="left-sidebar collapsed" aria-labelledby="ls-title" aria-hidden="true" inert>
+                <div class="ls-header">
+                    <span class="ls-title" id="ls-title">目录</span>
+                    <button class="ls-close" type="button" onclick="App.closeLeftSidebar()" aria-label="关闭目录">✕</button>
+                </div>
+                <div id="ls-content" class="ls-content"></div>
+            </div>
+            <!-- 中间阅读区 -->
+            <main class="reader-main">
+                <div id="reader-content" class="reader-body">
+                    <div id="book-content" class="book-text"></div>
+                    <!-- 浮动翻页按钮 -->
+                    <button id="btn-prev" class="float-nav-btn prev">‹</button>
+                    <button id="btn-next" class="float-nav-btn next">›</button>
+                </div>
+            </main>
+            <!-- 右侧面板 -->
+            <aside id="right-panel" class="right-panel collapsed" aria-label="AI 面板" aria-hidden="true" inert>
+                <button id="mobile-drawer-handle" class="mobile-drawer-handle" type="button" aria-label="展开或收起 AI 抽屉" aria-expanded="false">
+                    <span></span>
+                </button>
+                <div class="rp-tabs" role="tablist" aria-label="AI 面板功能">
+                    <button id="rp-tab-chat" class="rp-tab active" data-tab="chat" type="button" role="tab" aria-selected="true" aria-controls="rp-chat" onclick="App.switchTab('chat')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        聊天
+                    </button>
+                    <button id="rp-tab-ai" class="rp-tab" data-tab="ai" type="button" role="tab" aria-selected="false" aria-controls="rp-ai" tabindex="-1" onclick="App.switchTab('ai')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M9 14h6"/><rect x="8" y="14" width="8" height="6" rx="2"/><path d="M12 20v2"/><path d="M6 6h-2"/><path d="M20 6h-2"/></svg>
+                        讲书
+                    </button>
+                    <button id="rp-tab-tts" class="rp-tab" data-tab="tts" type="button" role="tab" aria-selected="false" aria-controls="rp-tts" tabindex="-1" onclick="App.switchTab('tts')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                        朗读
+                    </button>
+                </div>
+                <button class="rp-close-mobile" type="button" onclick="App.closeRightPanel()" title="关闭" aria-label="关闭 AI 面板">×</button>
+                <div id="rp-chat" class="rp-content active" role="tabpanel" aria-labelledby="rp-tab-chat">
+                    <div id="chat-messages" class="chat-messages">
+                        <!-- Welcome State -->
+                        <div id="chat-welcome" class="chat-welcome">
+                            <div class="chat-welcome-icon">✦</div>
+                            <h3>智读 AI</h3>
+                            <p>关于当前阅读内容，你可以问我任何问题</p>
+                            <div class="chat-suggestions">
+                                <button class="chat-suggestion-btn" onclick="App.sendChatText('帮我总结这一页的要点')">📝 帮我总结这一页的要点</button>
+                                <button class="chat-suggestion-btn" onclick="App.sendChatText('用简单的话解释一下')">💡 用简单的话解释一下</button>
+                                <button class="chat-suggestion-btn" onclick="App.sendChatText('这段内容有什么深层含义？')">🔍 这段内容有什么深层含义？</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <div class="chat-input-wrap">
+                            <input id="chat-input" placeholder="向智读 AI 提问..." aria-label="向智读 AI 提问" onkeydown="if(event.key==='Enter'){event.preventDefault();App.sendChat()}">
+                            <button id="btn-voice" class="chat-action-btn" type="button" onclick="Voice.toggle()" title="语音输入" aria-label="语音输入">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                            </button>
+                            <button id="btn-chat-send" class="chat-send-btn" type="button" onclick="App.sendChat()" title="发送" aria-label="发送">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- 朗读面板 -->
+                <div id="rp-tts" class="rp-content" role="tabpanel" aria-labelledby="rp-tab-tts" aria-hidden="true" style="overflow-y:auto;padding:16px">
+                    <div class="control-group">
+                        <label>音色</label>
+                        <select id="tts-voice" onchange="TTS.setVoice(this.selectedIndex)"></select>
+                    </div>
+                    <div class="control-group">
+                        <label>语速 <span id="speed-display">1.0x</span></label>
+                        <input type="range" min="0.5" max="2" step="0.1" value="1"
+                            oninput="TTS.setSpeed(this.value);document.getElementById('speed-display').textContent=this.value+'x'">
+                    </div>
+                    <div class="tts-controls">
+                        <button id="btn-tts-play" class="btn btn-primary btn-tts-play" onclick="App.startTTS()">▶ 开始朗读</button>
+                        <button class="btn btn-icon" onclick="TTS.pause()">⏸ 暂停</button>
+                        <button class="btn btn-icon" onclick="TTS.resume()">▶ 继续</button>
+                        <button class="btn btn-icon" onclick="TTS.stop()">⏹ 停止</button>
+                    </div>
+                </div>
+                <div id="rp-ai" class="rp-content" role="tabpanel" aria-labelledby="rp-tab-ai" aria-hidden="true" style="overflow-y:auto">
+                    <!-- 顶部：语言+开始 -->
+                    <div class="ai-toolbar">
+                        <button class="ai-page-btn" onclick="Reader.prevPage()" title="上一页" aria-label="上一页">‹</button>
+                        <button class="ai-page-btn" onclick="Reader.nextPage()" title="下一页" aria-label="下一页">›</button>
+                        <select id="ai-lang" class="ai-select" aria-label="解读语言">
+                            <option value="zh-CN">🇨🇳 中文</option>
+                            <option value="en">🇺🇸 English</option>
+                            <option value="ja">🇯🇵 日本語</option>
+                            <option value="ko">🇰🇷 한국어</option>
+                        </select>
+                        <button id="btn-ai-start" class="ai-start-btn" onclick="App.triggerAIRead()">
+                            <span class="ai-start-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M5 5.5h5.5A2.5 2.5 0 0 1 13 8v11a2.5 2.5 0 0 0-2.5-2.5H5z"></path>
+                                    <path d="M19 7.5h-3.5A2.5 2.5 0 0 0 13 10v9a2.5 2.5 0 0 1 2.5-2.5H19z"></path>
+                                    <path d="M18 3v2"></path>
+                                    <path d="M17 4h2"></path>
+                                </svg>
+                            </span>
+                            <span class="ai-start-label">开始解读</span>
+                        </button>
+                    </div>
+                    <!-- 内容区 -->
+                    <div id="ai-content" class="ai-panel-content">
+                        <p style="color:var(--text-muted);text-align:center;padding:40px 0">
+                            选择语言后点击「开始解读」<br>AI 将为你讲解当前页面内容</p>
+                    </div>
+                    <!-- TTS 控制条 -->
+                    <div id="ai-tts-bar" class="ai-tts-bar hidden">
+                        <button id="btn-ai-tts-prev" class="ai-tts-btn ai-tts-skip" onclick="App.toggleAITTS('prev')" title="上一句">⏪ 上一句</button>
+                        <button id="btn-ai-tts-toggle" class="ai-tts-btn ai-tts-main" onclick="App.toggleAITTS('toggle')" title="播放或暂停">▶ 听解读</button>
+                        <button id="btn-ai-tts-next" class="ai-tts-btn ai-tts-skip" onclick="App.toggleAITTS('next')" title="下一句">下一句 ⏩</button>
+                        <button id="btn-ai-tts-speed" class="ai-tts-speed" onclick="App.cycleAITTSSpeed()" title="切换语速">1.0x</button>
+                    </div>
+                </div>
+            </aside>
+            <div id="mobile-more-scrim" class="mobile-more-scrim hidden" onclick="App.closeMobileMore()"></div>
+            <div id="mobile-more-menu" class="mobile-more-menu hidden" aria-label="更多阅读工具">
+                <button type="button" onclick="App.showNotes();App.closeMobileMore()">笔记</button>
+                <button type="button" onclick="App.showKnowledgeMap();App.closeMobileMore()">图谱</button>
+                <button type="button" onclick="App.toggleMagnifierFromMobile()">放大镜</button>
+                <button type="button" onclick="App.togglePanel('settings');App.closeMobileMore()">设置</button>
+                <button type="button" onclick="App.returnToBookshelf();App.closeMobileMore()">返回书架</button>
+            </div>
+            <nav id="mobile-reader-toolbar" class="mobile-reader-toolbar hidden" aria-label="阅读工具">
+                <button id="btn-mobile-toc" class="mobile-reader-tool" type="button" onclick="App.showTOC()" aria-label="目录">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg>
+                    <span>目录</span>
+                </button>
+                <button id="btn-mobile-display" class="mobile-reader-tool" type="button" onclick="App.openMobileDisplay()" aria-label="显示">
+                    <span class="mobile-reader-tool-text">Aa</span>
+                    <span>显示</span>
+                </button>
+                <button id="btn-mobile-ai" class="mobile-reader-tool primary" type="button" onclick="App.openMobileAI()" aria-label="AI">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h5.5A2.5 2.5 0 0 1 13 8v11a2.5 2.5 0 0 0-2.5-2.5H5z"></path><path d="M19 7.5h-3.5A2.5 2.5 0 0 0 13 10v9a2.5 2.5 0 0 1 2.5-2.5H19z"></path></svg>
+                    <span>AI</span>
+                </button>
+                <button id="btn-mobile-tts" class="mobile-reader-tool" type="button" onclick="App.openMobileTTS()" aria-label="听书">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.5 8.5a5 5 0 0 1 0 7"></path></svg>
+                    <span>听书</span>
+                </button>
+                <button id="btn-mobile-more" class="mobile-reader-tool" type="button" onclick="App.toggleMobileMore()" aria-label="更多">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>
+                    <span>更多</span>
+                </button>
+            </nav>
+            <button id="btn-mobile-ai-start" class="mobile-ai-start-btn" onclick="App.triggerAIRead()" aria-label="开始解读">
+                <span class="ai-start-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                        <path d="M5 5.5h5.5A2.5 2.5 0 0 1 13 8v11a2.5 2.5 0 0 0-2.5-2.5H5z"></path>
+                        <path d="M19 7.5h-3.5A2.5 2.5 0 0 0 13 10v9a2.5 2.5 0 0 1 2.5-2.5H19z"></path>
+                        <path d="M18 3v2"></path>
+                        <path d="M17 4h2"></path>
+                    </svg>
+                </span>
+                <span class="ai-start-label">开始解读</span>
+            </button>
+            <div id="mobile-ai-player" class="mobile-ai-player hidden" aria-label="AI 解读播放控制">
+                <button id="btn-mobile-ai-tts-prev" class="mobile-player-btn" onclick="App.toggleAITTS('prev')" title="上一句" aria-label="上一句">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 6 5 12l6 6V6z"></path><path d="M19 6l-6 6 6 6V6z"></path></svg>
+                </button>
+                <button id="btn-mobile-ai-tts-toggle" class="mobile-player-main" onclick="App.toggleAITTS('toggle')" title="暂停或继续" aria-label="暂停或继续">
+                    <svg class="mobile-player-icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.8v12.4c0 .9 1 1.4 1.8.9l9.2-6.2a1.1 1.1 0 0 0 0-1.8L9.8 4.9C9 4.4 8 4.9 8 5.8z"></path></svg>
+                    <svg class="mobile-player-icon-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5" width="3.5" height="14" rx="1.2"></rect><rect x="13.5" y="5" width="3.5" height="14" rx="1.2"></rect></svg>
+                </button>
+                <button id="btn-mobile-ai-tts-next" class="mobile-player-btn" onclick="App.toggleAITTS('next')" title="下一句" aria-label="下一句">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 6 6 6-6 6V6z"></path><path d="m5 6 6 6-6 6V6z"></path></svg>
+                </button>
+                <button id="btn-mobile-subtitles-toggle" class="mobile-caption-toggle is-on" onclick="App.cycleMobileSubtitles()" title="切换字幕模式" aria-label="切换字幕模式">字幕大</button>
+            </div>
+            <div id="mobile-ai-subtitles" class="mobile-ai-subtitles hidden" aria-live="polite" aria-label="AI 解读字幕">
+                <div id="mobile-ai-subtitle-text" class="mobile-ai-subtitle-text"></div>
+            </div>
+        </div>
+        <!-- 弹出面板（全局可用） -->
+        <div id="overlay" class="overlay hidden"></div>
+        <div id="tts-panel" class="popup-panel hidden" role="dialog" aria-modal="true" aria-hidden="true" tabindex="-1" inert></div>
+        <div id="theme-panel" class="popup-panel hidden" role="dialog" aria-modal="true" aria-hidden="true" tabindex="-1" inert></div>
+        <div id="font-panel" class="popup-panel hidden" role="dialog" aria-modal="true" aria-hidden="true" tabindex="-1" inert></div>
+        <div id="notes-panel" class="popup-panel hidden" role="dialog" aria-modal="true" aria-hidden="true" tabindex="-1" inert></div>
+        <div id="map-panel" class="popup-panel wide hidden" role="dialog" aria-modal="true" aria-hidden="true" tabindex="-1" inert></div>
+        <div id="toc-panel" class="popup-panel hidden" role="dialog" aria-modal="true" aria-hidden="true" tabindex="-1" inert></div>
+        <div id="settings-panel" class="popup-panel hidden" role="dialog" aria-modal="true" aria-hidden="true" tabindex="-1" inert></div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/native-standalone.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/vendor-loader.js"></script>
+    <script src="js/helpers.js"></script>
+    <script src="js/bookshelf.js?v=zlib-register-self-20260518a"></script>
+    <script src="js/reader.js"></script>
+    <script src="js/tts.js?v=tts-prev-20260515a"></script>
+    <script src="js/ai-config.js"></script>
+    <script src="js/ai-service.js"></script>
+    <script src="js/ai-reader.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/selection.js"></script>
+    <script src="js/notes.js"></script>
+    <script src="js/knowledge-map.js"></script>
+    <script src="js/voice.js"></script>
+    <script src="js/magnifier.js"></script>
+    <script src="js/app.js?v=ai-tts-prev-20260515a"></script>
+</body>
+
+</html>

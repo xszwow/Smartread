@@ -1,0 +1,14 @@
+{
+  "appId": "com.smartread.app",
+  "appName": "SmartRead",
+  "webDir": "mobile-www",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

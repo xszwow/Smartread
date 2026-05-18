@@ -1,0 +1,104 @@
+{
+  "name": "smartread-zlib-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "dev": ".\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\tsx\\dist\\cli.mjs server/index.ts",
+    "vendor:prepare": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/prepare-vendor-assets.cjs",
+    "build": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/prepare-vendor-assets.cjs && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\typescript\\bin\\tsc -p tsconfig.json",
+    "start": ".\\tools\\node-v24.15.0-win-x64\\node.exe dist/server/index.js",
+    "test": ".\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\vitest\\vitest.mjs run",
+    "test:e2e:mobile-empty-shelf": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/prepare-vendor-assets.cjs && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\typescript\\bin\\tsc -p tsconfig.json && .\\tools\\node-v24.15.0-win-x64\\node.exe scripts/mobile-empty-shelf-check.cjs",
+    "functional:audit": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/functional-coverage-audit.cjs",
+    "native:standalone:audit": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/native-standalone-audit.cjs",
+    "workspace:clean:audit": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/workspace-clean-audit.cjs",
+    "desktop:dev": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/prepare-vendor-assets.cjs && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\typescript\\bin\\tsc -p tsconfig.json && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\electron\\cli.js .",
+    "desktop:pack:win": "set PATH=%CD%\\tools\\node-v24.15.0-win-x64;%PATH%&& set ELECTRON_BUILDER_CACHE=%CD%\\.cache\\electron-builder&& .\\tools\\node-v24.15.0-win-x64\\node.exe scripts\\prepare-vendor-assets.cjs && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\typescript\\bin\\tsc -p tsconfig.json && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\electron-builder\\cli.js --win nsis",
+    "desktop:pack:win:unsigned": "set PATH=%CD%\\tools\\node-v24.15.0-win-x64;%PATH%&& set ELECTRON_BUILDER_CACHE=%CD%\\.cache\\electron-builder&& .\\tools\\node-v24.15.0-win-x64\\node.exe scripts\\prepare-vendor-assets.cjs && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\typescript\\bin\\tsc -p tsconfig.json && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\electron-builder\\cli.js --win nsis --config.win.signAndEditExecutable=false --config.win.forceCodeSigning=false",
+    "desktop:pack:win:dev-signed": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows-dev-signed.ps1",
+    "desktop:pack:win:production-signed": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows-production-signed.ps1",
+    "desktop:smoke": ".\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\typescript\\bin\\tsc -p tsconfig.json && .\\tools\\node-v24.15.0-win-x64\\node.exe scripts/desktop-smoke-test.cjs",
+    "desktop:smoke:packaged": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/packaged-desktop-smoke.cjs",
+    "desktop:smoke:installed": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/installed-desktop-smoke.cjs",
+    "mobile:prepare": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/prepare-vendor-assets.cjs && .\\tools\\node-v24.15.0-win-x64\\node.exe scripts/prepare-mobile-web.cjs",
+    "mobile:sync": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/prepare-vendor-assets.cjs && .\\tools\\node-v24.15.0-win-x64\\node.exe scripts/prepare-mobile-web.cjs && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\@capacitor\\cli\\bin\\capacitor sync",
+    "android:build:debug": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/build-android.cjs debug",
+    "android:build:release": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/build-android.cjs release",
+    "android:build:bundle": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/build-android.cjs bundle",
+    "android:open": ".\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\@capacitor\\cli\\bin\\capacitor open android",
+    "ios:open": ".\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\@capacitor\\cli\\bin\\capacitor open ios",
+    "ios:build:release": "bash scripts/build-ios-release.sh",
+    "packaging:check": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/check-packaging-tooling.cjs",
+    "signing:check": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/check-signing-env.cjs",
+    "production-signing:check": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/check-production-signing-env.cjs",
+    "distribution:risk:audit": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/distribution-risk-audit.cjs",
+    "release:audit": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/release-audit.cjs",
+    "release:readiness": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/release-readiness-report.cjs",
+    "windows:sign-artifacts": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sign-windows-artifacts.ps1",
+    "windows:trust-dev-cert": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-windows-dev-cert.ps1"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/static": "^9.1.3",
+    "axios": "^1.16.1",
+    "epubjs": "^0.3.93",
+    "fastify": "^5.8.5",
+    "http-proxy-agent": "^7.0.2",
+    "https-proxy-agent": "^7.0.6",
+    "jszip": "^3.10.1",
+    "marked": "^16.3.0",
+    "nodemailer": "^8.0.7",
+    "pdfjs-dist": "^3.11.174",
+    "socks-proxy-agent": "^8.0.5",
+    "zlibrary-nodejs": "^1.1.1"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/ios": "^8.3.4",
+    "@types/node": "^24.10.1",
+    "@types/nodemailer": "^8.0.0",
+    "electron": "^42.1.0",
+    "electron-builder": "^26.8.1",
+    "playwright": "^1.60.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.13"
+  },
+  "build": {
+    "appId": "com.smartread.desktop",
+    "productName": "SmartRead",
+    "files": [
+      "desktop/**/*",
+      "dist/**/*",
+      "css/**/*",
+      "js/**/*",
+      "index.css",
+      "index.html",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "dist/server/**/*",
+      "node_modules/**/*",
+      "index.css",
+      "index.html",
+      "css/**/*",
+      "js/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis",
+      "signAndEditExecutable": true
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

@@ -1,0 +1,56 @@
+/* ===== Panel Controls ===== */
+.panel-header {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:20px; padding-bottom:12px;
+    border-bottom:1px solid var(--border);
+}
+.panel-header h3 { font-size:1rem; font-weight:600; }
+.control-group { margin-bottom:16px; }
+.control-group label {
+    display:block; font-size:0.85rem; color:var(--text-secondary);
+    margin-bottom:8px;
+}
+.control-group select, .control-group input[type="range"] { width:100%; }
+.control-group select {
+    background:var(--bg-card); color:var(--text-primary);
+    border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:8px 12px; font-size:0.85rem;
+}
+input[type="range"] {
+    -webkit-appearance:none; height:4px;
+    background:var(--border); border-radius:2px; outline:none;
+}
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance:none; width:20px; height:20px;
+    background:#ffffff; border:1px solid var(--border); border-radius:50%; cursor:pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+.tts-controls { display:flex; gap:8px; margin-top:16px; }
+.theme-options { display:flex; gap:10px; }
+.theme-btn {
+    flex:1; padding:12px; border:1px solid var(--border);
+    border-radius:var(--radius-sm); background:var(--bg-card);
+    color:var(--text-primary); cursor:pointer; font-size:0.85rem;
+    transition:all 0.2s;
+}
+.theme-btn:hover, .theme-btn.active {
+    border-color:var(--accent); background:var(--accent-glow);
+}
+.font-size-controls {
+    display:flex; align-items:center; justify-content:center; gap:20px;
+}
+.font-size-controls span { font-size:1.1rem; font-weight:600; min-width:50px; text-align:center; }
+/* ===== Theme Variants ===== */
+/* ===== Theme Variants ===== */
+.theme-dark { 
+    --bg-primary: #1c1c1e; --bg-surface: #2c2c2e; --bg-card: rgba(255,255,255,0.05); 
+    --bg-card-hover: rgba(255,255,255,0.1); --bg-glass: rgba(44,44,46,0.8); 
+    --text-primary: #ffffff; --text-secondary: #ebebf5; --text-muted: #ebebf599; 
+    --border: rgba(255,255,255,0.1); 
+}
+.theme-sepia { 
+    --bg-primary: #f4ecd8; --bg-surface: #fdf6e3; --bg-card: rgba(253,246,227,0.8); 
+    --bg-card-hover: rgba(253,246,227,1); --bg-glass: rgba(253,246,227,0.8); 
+    --text-primary: #3b3127; --text-secondary: #5b4636; --text-muted: #8a7a6a; 
+    --border: rgba(91,70,54,0.1); 
+}

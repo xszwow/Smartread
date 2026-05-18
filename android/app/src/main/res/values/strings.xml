@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SmartRead</string>
+    <string name="title_activity_main">SmartRead</string>
+    <string name="package_name">com.smartread.app</string>
+    <string name="custom_url_scheme">com.smartread.app</string>
+</resources>

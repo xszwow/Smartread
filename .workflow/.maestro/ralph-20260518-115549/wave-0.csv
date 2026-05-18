@@ -1,0 +1,4 @@
+id,skill_call,topic
+"0","$maestro-init -y","Ralph step 0: inspect SmartRead project state, available scripts, existing screenshots/tests, and report setup gaps. Do not modify .workflow/.maestro status files."
+"1","$maestro-analyze ui-quality -y","Ralph step 1: audit UI code and all discoverable screens/states for likely layout, responsiveness, accessibility, and UX risks. Do not modify .workflow/.maestro status files."
+"4","$maestro-verify ui-quality -y","Ralph step 4 baseline: run available build/unit/e2e checks and inspect existing screenshots for current failures. Do not modify .workflow/.maestro status files."
