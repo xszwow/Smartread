@@ -178,6 +178,7 @@
     min-width: 0;
     overflow: hidden;
     position: relative;
+    background: var(--reader-bg);
 }
 
 .reader-body {
@@ -187,6 +188,7 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    background: var(--reader-bg);
 }
 
 #book-content {
@@ -195,6 +197,7 @@
     min-height: 0;
     position: relative;
     overflow: hidden;
+    background: var(--reader-bg);
 }
 
 .book-text {
@@ -218,6 +221,7 @@
 
 #book-content.book-txt {
     overflow-y: auto;
+    background: var(--reader-page-bg);
 }
 
 #book-content.book-epub {
@@ -422,7 +426,7 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    background: #f1f2f4;
+    background: var(--pdf-stage-bg);
 }
 
 .pdf-page-stage {
@@ -434,14 +438,19 @@
     padding: 16px;
     overflow: hidden;
     position: relative;
+    background: var(--pdf-stage-bg);
 }
 
 .pdf-page-canvas {
     display: block;
     max-width: 100%;
     max-height: 100%;
-    background: #fff;
+    background: var(--reader-page-bg);
+    filter: var(--pdf-page-filter);
+    mix-blend-mode: normal;
+    opacity: 1;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+    transition: filter 0.2s ease, background 0.2s ease, opacity 0.2s ease;
 }
 
 .pdf-status {
@@ -451,7 +460,7 @@
     align-items: center;
     justify-content: center;
     color: var(--text-secondary);
-    background: rgba(241, 242, 244, 0.78);
+    background: var(--pdf-status-bg);
     font-size: 0.9rem;
 }
 
@@ -675,11 +684,18 @@
     border-radius: 3px;
     padding: 0 2px;
     transition: background 0.3s;
+    cursor: pointer;
     -webkit-box-decoration-break: clone;
     box-decoration-break: clone;
 }
 
-.mobile-ai-player {
+.theme-sepia .tts-highlight {
+    background: rgba(177, 103, 16, 0.34);
+    box-shadow: 0 0 0 1px rgba(138, 90, 31, 0.18);
+}
+
+.mobile-ai-player,
+.mobile-tts-player {
     display: none;
 }
 
@@ -707,6 +723,14 @@
 @media (max-width: 1024px) {
     #reader-view.active {
         position: relative;
+        --mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
+        --mobile-toolbar-bottom: calc(10px + var(--mobile-safe-bottom));
+        --mobile-toolbar-height: 62px;
+        --mobile-player-toolbar-gap: 28px;
+        --mobile-subtitle-player-gap: 44px;
+        --mobile-player-height: 58px;
+        --mobile-player-bottom: calc(var(--mobile-toolbar-bottom) + var(--mobile-toolbar-height) + var(--mobile-player-toolbar-gap));
+        --mobile-subtitle-bottom: calc(var(--mobile-player-bottom) + var(--mobile-player-height) + var(--mobile-subtitle-player-gap));
     }
 
     #reader-view.active .mobile-reader-back-only:not(.hidden) {
@@ -994,7 +1018,8 @@
         display: none;
     }
 
-    .mobile-ai-player:not(.hidden) {
+    .mobile-ai-player:not(.hidden),
+    .mobile-tts-player:not(.hidden) {
         position: fixed;
         left: 0;
         right: 0;
@@ -1047,6 +1072,7 @@
         --mobile-subtitle-current-shadow: rgba(255, 149, 0, 0.13);
         inset: 0;
         left: 0;
+        right: 0;
         bottom: 0;
         width: 100vw;
         height: 100vh;
@@ -1057,15 +1083,13 @@
         color: var(--mobile-subtitle-text);
         backdrop-filter: blur(40px) saturate(180%);
         -webkit-backdrop-filter: blur(40px) saturate(180%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 64px 32px 120px;
+        display: block;
+        padding: 0;
         transform: none;
         z-index: 89;
         box-shadow: none;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
+        box-sizing: border-box;
+        overflow: hidden;
         pointer-events: auto;
         animation: mobile-caption-large-in 0.3s var(--ease);
     }
@@ -1083,12 +1107,21 @@
         -webkit-line-clamp: unset;
         -webkit-box-orient: unset;
         display: block;
+        box-sizing: border-box;
         font-size: clamp(1.1rem, 4.5vw, 1.4rem);
         line-height: 1.85;
-        max-width: 88vw;
-        overflow: visible;
+        inset: 0 0 var(--mobile-subtitle-bottom) 0;
+        margin: 0;
+        max-width: none;
+        overflow-y: auto;
+        padding: calc(56px + env(safe-area-inset-top, 0px)) max(22px, calc((100vw - 760px) / 2)) 24px;
+        position: absolute;
+        scroll-padding-top: calc(72px + env(safe-area-inset-top, 0px));
+        scroll-padding-bottom: 24px;
         text-align: left;
         text-shadow: none;
+        width: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .theme-dark .mobile-ai-subtitles.subtitle-large .mobile-ai-subtitle-text {
@@ -1103,16 +1136,25 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
-        width: min(760px, 88vw);
-        padding: 8px 0;
+        width: auto;
     }
 
     .mobile-ai-subtitle-sentence {
+        appearance: none;
+        -webkit-appearance: none;
+        background: transparent;
         border: 1px solid transparent;
         border-radius: 18px;
         color: var(--mobile-subtitle-text);
+        cursor: pointer;
+        display: block;
+        font: inherit;
         padding: 8px 12px;
+        text-align: left;
+        touch-action: manipulation;
         transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s, opacity 0.2s;
+        width: 100%;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .mobile-ai-subtitle-sentence.is-past {
@@ -1131,6 +1173,15 @@
         box-shadow: 0 12px 30px var(--mobile-subtitle-current-shadow);
         color: var(--mobile-subtitle-text);
         opacity: 1;
+    }
+
+    .mobile-ai-subtitle-sentence:active {
+        background: rgba(0, 122, 255, 0.10);
+    }
+
+    .mobile-ai-subtitle-sentence:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
     }
 
     .theme-dark .mobile-ai-subtitle-sentence.is-current {
@@ -1254,6 +1305,18 @@
     }
 
     .mobile-ai-player.is-playing .mobile-player-icon-pause {
+        display: block;
+    }
+
+    .mobile-tts-player .mobile-player-icon-pause {
+        display: none;
+    }
+
+    .mobile-tts-player.is-playing .mobile-player-icon-play {
+        display: none;
+    }
+
+    .mobile-tts-player.is-playing .mobile-player-icon-pause {
         display: block;
     }
 
@@ -1383,17 +1446,19 @@
     }
 
     .right-panel:not(.collapsed) ~ .mobile-ai-start-btn:not(.hidden),
-    .right-panel:not(.collapsed) ~ .mobile-ai-player:not(.hidden) {
+    .right-panel:not(.collapsed) ~ .mobile-ai-player:not(.hidden),
+    .right-panel:not(.collapsed) ~ .mobile-tts-player:not(.hidden) {
         display: none;
     }
 
     .mobile-ai-start-btn:not(.hidden),
-    .mobile-ai-player:not(.hidden) {
-        bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    .mobile-ai-player:not(.hidden),
+    .mobile-tts-player:not(.hidden) {
+        bottom: var(--mobile-player-bottom);
     }
 
     .mobile-ai-subtitles:not(.hidden) {
-        bottom: calc(156px + env(safe-area-inset-bottom, 0px));
+        bottom: var(--mobile-subtitle-bottom);
     }
 
     .sidebar {
@@ -1405,7 +1470,7 @@
         background: rgba(255, 255, 255, 0.94);
         border: 1px solid rgba(0, 0, 0, 0.06);
         border-radius: 22px;
-        bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+        bottom: var(--mobile-toolbar-bottom);
         box-shadow: 0 12px 34px rgba(0, 0, 0, 0.16);
         display: grid;
         gap: 2px;
@@ -1422,6 +1487,12 @@
 
     .theme-dark #reader-view.active .mobile-reader-toolbar:not(.hidden) {
         background: rgba(44, 44, 46, 0.94);
+    }
+
+    .theme-sepia #reader-view.active .mobile-reader-toolbar:not(.hidden) {
+        background: rgba(244, 229, 195, 0.96);
+        border-color: rgba(91, 70, 54, 0.2);
+        box-shadow: 0 12px 34px rgba(91, 70, 54, 0.2);
     }
 
     .mobile-reader-tool {
@@ -1454,7 +1525,6 @@
         line-height: 1;
     }
 
-    .mobile-reader-tool.primary,
     .mobile-reader-tool.is-active {
         background: var(--accent-soft);
         color: var(--accent);
@@ -1490,6 +1560,12 @@
 
     .theme-dark .mobile-more-menu:not(.hidden) {
         background: rgba(44, 44, 46, 0.96);
+    }
+
+    .theme-sepia .mobile-more-menu:not(.hidden) {
+        background: rgba(244, 229, 195, 0.98);
+        border-color: rgba(91, 70, 54, 0.2);
+        box-shadow: 0 18px 46px rgba(91, 70, 54, 0.22);
     }
 
     .mobile-more-menu button {

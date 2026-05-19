@@ -3,6 +3,7 @@
     const nativeConfig = window.SmartReadNativeConfig || {};
     const enabled = nativeConfig.appMode === 'mobile' && nativeConfig.standalone !== false;
     if (!enabled) return;
+    document.documentElement.classList.add('native-standalone-runtime');
 
     const AI_KEY = 'smartread.native.aiConfig';
     const localUser = {
@@ -10,6 +11,22 @@
         email: 'local-device@smartread.local',
         displayName: '本机书架'
     };
+
+    function nativeBackend() {
+        return window.Capacitor?.Plugins?.SmartReadBackend || null;
+    }
+
+    function hasNativeBackend() {
+        return !!nativeBackend();
+    }
+
+    async function callNative(method, payload = {}) {
+        const plugin = nativeBackend();
+        if (!plugin || typeof plugin[method] !== 'function') {
+            throw new Error('当前运行环境没有可用的 Android 原生书源。');
+        }
+        return plugin[method](payload);
+    }
 
     function readAIConfig() {
         try {
@@ -64,6 +81,7 @@
         user: localUser,
         readAIConfig,
         saveAIConfig,
+        hasNativeBackend,
         onlineHome: 'https://z-library.sk/'
     };
 
@@ -72,9 +90,13 @@
         ...baseAPI,
         async config() {
             const ai = readAIConfig();
+            const backendConfig = hasNativeBackend()
+                ? await callNative('config').catch(() => ({}))
+                : {};
             return {
+                ...backendConfig,
                 deploymentMode: 'native-standalone',
-                zlibRegisterUrl: 'https://z-library.sk/',
+                zlibRegisterUrl: backendConfig.zlibRegisterUrl || 'https://z-library.sk/',
                 aiDefaults: {
                     baseURL: ai.baseURL,
                     model: ai.model
@@ -83,10 +105,13 @@
         },
         async me() {
             const ai = readAIConfig();
+            const backendMe = hasNativeBackend()
+                ? await callNative('me').catch(() => ({}))
+                : {};
             return {
                 user: localUser,
                 aiConfigured: ai.configured,
-                zlibBound: false,
+                zlibBound: !!backendMe.zlibBound,
                 nativeStandalone: true
             };
         },
@@ -112,31 +137,48 @@
             return saveAIConfig(payload);
         },
         async serverBooks() {
-            return { books: [] };
+            return hasNativeBackend() ? callNative('serverBooks') : { books: [] };
         },
-        async updateBookProgress() {
-            return { ok: true };
+        async updateBookProgress(bookId, payload = {}) {
+            return hasNativeBackend()
+                ? callNative('updateBookProgress', { bookId, ...payload })
+                : { ok: true };
         },
-        async deleteServerBook() {
-            return { ok: true };
+        async deleteServerBook(bookId) {
+            return hasNativeBackend()
+                ? callNative('deleteServerBook', { bookId })
+                : { ok: true };
         },
-        async fetchBookFile() {
-            throw new Error('手机单机版没有 SmartRead 服务器书籍。');
+        async fetchBookFile(bookId) {
+            const file = await callNative('fetchBookFile', { bookId });
+            const blob = base64ToBlob(file.base64 || '', file.mimeType || 'application/octet-stream');
+            return new Response(blob, {
+                status: 200,
+                headers: { 'content-type': blob.type }
+            });
         },
-        async bindZlib() {
-            throw new Error('手机单机版不绑定 SmartRead 服务器书源。请在网页书源下载后导入本地。');
+        async bindZlib(payload) {
+            return callNative('bindZlib', payload);
         },
         async unbindZlib() {
-            return { ok: true };
+            return hasNativeBackend() ? callNative('unbindZlib') : { ok: true };
         },
-        async searchZlib() {
-            throw new Error('手机单机版不经过 SmartRead 服务器搜索。请打开网页书源，下载后导入本地。');
+        async searchZlib(payload) {
+            return callNative('searchZlib', payload);
         },
-        async startZlibDownload() {
-            throw new Error('手机单机版不经过 SmartRead 服务器下载。请下载文件后导入本地。');
+        async startZlibDownload(payload) {
+            return callNative('startZlibDownload', payload);
         },
-        async downloadJob() {
-            throw new Error('手机单机版没有服务器下载任务。');
+        async downloadJob(jobId) {
+            return callNative('downloadJob', { jobId });
         }
     };
+    SmartReadAPI = window.SmartReadAPI;
+
+    function base64ToBlob(base64, mimeType) {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+        return new Blob([bytes], { type: mimeType });
+    }
 })();

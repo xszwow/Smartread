@@ -5,19 +5,22 @@ const root = path.resolve(__dirname, "..");
 const outDir = path.join(root, "mobile-www");
 const stageDir = path.join(root, `mobile-www.tmp-${process.pid}`);
 const apiBaseUrl = process.env.SMARTREAD_NATIVE_API_BASE_URL || "";
-const standalone = process.env.SMARTREAD_NATIVE_STANDALONE !== "0";
+const nativeBackend = process.env.SMARTREAD_NATIVE_BACKEND !== "0";
+const standalone = process.env.SMARTREAD_NATIVE_STANDALONE === "1";
 
 fs.rmSync(stageDir, { recursive: true, force: true });
 fs.mkdirSync(stageDir, { recursive: true });
 
 try {
   copyFile("index.html");
+  copyFile("index.css");
   copyDir("css");
   copyDir("js");
 
   const config = [
     "window.SmartReadNativeConfig = {",
     `  apiBaseUrl: ${JSON.stringify(apiBaseUrl)},`,
+    `  nativeBackend: ${nativeBackend ? "true" : "false"},`,
     `  standalone: ${standalone ? "true" : "false"},`,
     "  appMode: 'mobile'",
     "};",
@@ -36,7 +39,14 @@ try {
   }
 
   fs.rmSync(outDir, { recursive: true, force: true });
-  fs.renameSync(stageDir, outDir);
+  try {
+    fs.renameSync(stageDir, outDir);
+  } catch (error) {
+    if (error.code !== "EPERM" && error.code !== "EACCES") throw error;
+    fs.mkdirSync(outDir, { recursive: true });
+    fs.cpSync(stageDir, outDir, { recursive: true });
+    fs.rmSync(stageDir, { recursive: true, force: true });
+  }
 } catch (error) {
   fs.rmSync(stageDir, { recursive: true, force: true });
   throw error;

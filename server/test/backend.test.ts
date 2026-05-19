@@ -413,20 +413,41 @@ describe("SmartRead backend", () => {
   it("falls back when the direct Z-Library parser finds an empty paged result", async () => {
     const adapter = new ZlibraryNodeAdapter();
     let fallbackCalls = 0;
-    const fakeLib = {
-      mirror: "https://z-lib.fm",
-      _r: async () => [
-        "<html><body>",
-        "<div id=\"searchResultBox\"></div>",
-        "<script>var pagerOptions = { pagesTotal: 3 };</script>",
-        "</body></html>"
-      ].join(""),
-      search: async () => {
-        fallbackCalls += 1;
-        return new FallbackPaginator();
-      }
+    (adapter as unknown as {
+      restoreLib: (session: ZlibSessionState) => unknown;
+      directSearch: (_lib: unknown, params: SearchParams, _extensions: string[]) => Promise<SearchResponse>;
+      searchWithPaginator: (_lib: unknown, params: SearchParams, _extensions: string[]) => Promise<SearchResponse>;
+    }).restoreLib = () => ({ mirror: "https://z-lib.fm" });
+    (adapter as unknown as {
+      directSearch: (_lib: unknown, params: SearchParams, _extensions: string[]) => Promise<SearchResponse>;
+    }).directSearch = async (_lib, params) => ({
+      page: params.page,
+      totalPages: 3,
+      hasNext: true,
+      results: []
+    });
+    (adapter as unknown as {
+      searchWithPaginator: (_lib: unknown, params: SearchParams, _extensions: string[]) => Promise<SearchResponse>;
+    }).searchWithPaginator = async (_lib, params) => {
+      fallbackCalls += 1;
+      return {
+        page: params.page,
+        totalPages: null,
+        hasNext: true,
+        results: [{
+          sourceId: `fallback-page-${params.page}`,
+          title: `Fallback Page ${params.page}`,
+          authors: ["SmartRead QA"],
+          coverUrl: null,
+          year: null,
+          language: null,
+          extension: "epub",
+          sizeLabel: "1 MB",
+          rating: null,
+          sourceUrl: null
+        }]
+      };
     };
-    (adapter as unknown as { restoreLib: (session: ZlibSessionState) => unknown }).restoreLib = () => fakeLib;
 
     const result = await adapter.search(
       { cookies: {}, createdAt: Date.now() },

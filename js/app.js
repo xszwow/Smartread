@@ -5,6 +5,10 @@ const App = {
     defaultRightPanelWidth: 380,
     mobileMoreOpen: false,
     mobileDrawerExpanded: false,
+    mobileActiveTool: null,
+    aiTTSPreviewText: '',
+    aiTTSPreviewSentences: [],
+    aiTTSSelectedIndex: 0,
     popupPanelNames: ['tts', 'theme', 'font', 'settings', 'notes', 'map', 'toc'],
     activePopupPanel: null,
     lastPanelTrigger: null,
@@ -16,6 +20,7 @@ const App = {
         TTS.init();
         this.bindNav();
         this.bindReaderControls();
+        this.bindMobileAISubtitles();
         this.buildPanels();
         this.syncRightPanelAccessibility();
         this.syncLeftSidebarAccessibility();
@@ -25,7 +30,7 @@ const App = {
         Voice.init();
         Chat.bindInputControls();
         Magnifier.init();
-        document.addEventListener('tts-state-change', () => this.updateAITTSControls());
+        document.addEventListener('tts-state-change', () => this.updateTTSControls());
         document.addEventListener('reader-page-change', () => this.handleReaderPageChange());
         window.addEventListener('resize', () => {
             this.syncMobileReaderChrome();
@@ -48,6 +53,8 @@ const App = {
         this.showView('bookshelf');
         Reader.saveProgress();
         Bookshelf.render();
+        this.clearAITTSPreview();
+        document.getElementById('ai-tts-bar')?.classList.add('hidden');
         TTS.stop();
     },
 
@@ -82,6 +89,8 @@ const App = {
         this.showView('reader');
         AIReader.reset();
         Chat.reset();
+        this.clearAITTSPreview();
+        document.getElementById('ai-tts-bar')?.classList.add('hidden');
         this.syncDefaultReaderPanels();
         await Reader.open(bookId);
         this.syncMobileReaderChrome();
@@ -203,6 +212,7 @@ const App = {
             });
             overlay.classList.remove('hidden');
         }
+        this.updateMobileToolbarState();
     },
 
     closeAllPanels(options = {}) {
@@ -217,10 +227,14 @@ const App = {
         });
         document.getElementById('overlay').classList.add('hidden');
         this.activePopupPanel = null;
+        if (this.mobileActiveTool === 'display' || this.mobileActiveTool === 'toc') {
+            this.mobileActiveTool = null;
+        }
         if (restoreFocus && this.lastPanelTrigger?.isConnected) {
             this.lastPanelTrigger.focus({ preventScroll: true });
         }
         if (restoreFocus) this.lastPanelTrigger = null;
+        this.updateMobileToolbarState();
     },
 
     preparePopupPanel(name) {
@@ -437,10 +451,11 @@ const App = {
         let bottomInset = 0;
         if (view.classList.contains('active') && this.isSmallScreen()) {
             const imagePage = this.isMobileReaderImagePage();
-            ['btn-mobile-ai-start', 'mobile-ai-player', 'mobile-ai-subtitles', 'mobile-reader-toolbar'].forEach(id => {
+            ['btn-mobile-ai-start', 'mobile-ai-player', 'mobile-tts-player', 'mobile-ai-subtitles', 'mobile-reader-toolbar'].forEach(id => {
                 if (imagePage && id === 'btn-mobile-ai-start') return;
                 const el = document.getElementById(id);
                 if (!this.isVisibleBox(el)) return;
+                if (id === 'mobile-ai-subtitles' && el.classList.contains('subtitle-large')) return;
                 const rect = el.getBoundingClientRect();
                 bottomInset = Math.max(bottomInset, Math.ceil(window.innerHeight - rect.top + 16));
             });
@@ -632,9 +647,11 @@ const App = {
         document.getElementById('ls-content').innerHTML = contentHTML;
         sb.classList.remove('collapsed');
         this.syncLeftSidebarAccessibility();
+        this.mobileActiveTool = 'toc';
         // 高亮对应的活动条按钮
         document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('btn-toc')?.classList.add('active');
+        this.updateMobileToolbarState();
         this.syncReaderLayout();
     },
 
@@ -645,7 +662,9 @@ const App = {
         sidebar?.classList.add('collapsed');
         btn?.classList.remove('active');
         this.syncLeftSidebarAccessibility();
+        if (this.mobileActiveTool === 'toc') this.mobileActiveTool = null;
         if (hadFocus) btn?.focus({ preventScroll: true });
+        this.updateMobileToolbarState();
         this.syncReaderLayout();
     },
 
@@ -709,28 +728,46 @@ const App = {
     toggleMobileDrawerExpanded() {
         if (!this.isSmallScreen()) return;
         if (document.getElementById('right-panel')?.classList.contains('collapsed')) {
-            this.openMobileDrawer('chat');
+            this.openMobileDrawer('ai');
         }
         this.setMobileDrawerExpanded(!this.mobileDrawerExpanded);
     },
 
     openMobileAI() {
-        this.openMobileDrawer('ai');
+        if (!this.isSmallScreen()) {
+            this.openMobileDrawer('ai');
+            return;
+        }
+        this.closeMobileMore();
+        this.closeMobileMenu();
+        if (TTS.source === 'book') TTS.stop();
+        this.mobileActiveTool = 'ai';
+        this.switchTab('ai');
+        this.closeRightPanel();
+        this.updateAITTSControls();
+        this.updateMobileToolbarState();
     },
 
-    openMobileTTS() {
-        this.openMobileDrawer('tts');
+    async openMobileTTS() {
+        this.closeMobileMore();
+        this.closeMobileMenu();
+        this.closeRightPanel();
+        if (this.mobileActiveTool === 'ai') this.mobileActiveTool = null;
+        await this.toggleMobileBookTTS('toggle');
     },
 
     openMobileDisplay() {
         this.closeMobileMore();
+        this.mobileActiveTool = 'display';
         this.togglePanel('font');
+        this.updateMobileToolbarState();
     },
 
     toggleMobileMore() {
         if (!this.isSmallScreen()) return;
         const next = !this.mobileMoreOpen;
         this.mobileMoreOpen = next;
+        this.mobileActiveTool = next ? 'more' : null;
         document.getElementById('mobile-more-menu')?.classList.toggle('hidden', !next);
         document.getElementById('mobile-more-scrim')?.classList.toggle('hidden', !next);
         this.updateMobileToolbarState();
@@ -738,6 +775,7 @@ const App = {
 
     closeMobileMore() {
         this.mobileMoreOpen = false;
+        if (this.mobileActiveTool === 'more') this.mobileActiveTool = null;
         document.getElementById('mobile-more-menu')?.classList.add('hidden');
         document.getElementById('mobile-more-scrim')?.classList.add('hidden');
         this.updateMobileToolbarState();
@@ -752,14 +790,27 @@ const App = {
         const panel = document.getElementById('right-panel');
         const activeTab = document.querySelector('.rp-tab.active')?.dataset.tab || '';
         const panelOpen = !!panel && !panel.classList.contains('collapsed');
+        const activePopupId = this.activePopupPanel?.id || '';
+        const leftSidebar = document.getElementById('left-sidebar');
+        const leftSidebarOpen = !!leftSidebar && !leftSidebar.classList.contains('collapsed');
+        const tocBtn = document.getElementById('btn-mobile-toc');
+        const displayBtn = document.getElementById('btn-mobile-display');
         const aiBtn = document.getElementById('btn-mobile-ai');
         const ttsBtn = document.getElementById('btn-mobile-tts');
         const moreBtn = document.getElementById('btn-mobile-more');
-        aiBtn?.classList.toggle('is-active', panelOpen && activeTab === 'ai');
-        ttsBtn?.classList.toggle('is-active', panelOpen && activeTab === 'tts');
+        const bookTTSActive = TTS.source === 'book' && (TTS.speaking || TTS.paused || TTS.completed);
+        const aiActive = !bookTTSActive && (this.mobileActiveTool === 'ai' || (panelOpen && activeTab === 'ai'));
+        const displayActive = this.mobileActiveTool === 'display' || activePopupId === 'font-panel';
+        const tocActive = this.mobileActiveTool === 'toc' || leftSidebarOpen;
+        tocBtn?.classList.toggle('is-active', tocActive);
+        displayBtn?.classList.toggle('is-active', displayActive);
+        aiBtn?.classList.toggle('is-active', aiActive);
+        ttsBtn?.classList.toggle('is-active', bookTTSActive);
         moreBtn?.classList.toggle('is-active', this.mobileMoreOpen);
-        aiBtn?.setAttribute('aria-pressed', String(panelOpen && activeTab === 'ai'));
-        ttsBtn?.setAttribute('aria-pressed', String(panelOpen && activeTab === 'tts'));
+        tocBtn?.setAttribute('aria-pressed', String(tocActive));
+        displayBtn?.setAttribute('aria-pressed', String(displayActive));
+        aiBtn?.setAttribute('aria-pressed', String(aiActive));
+        ttsBtn?.setAttribute('aria-pressed', String(bookTTSActive));
         moreBtn?.setAttribute('aria-pressed', String(this.mobileMoreOpen));
     },
 
@@ -786,6 +837,7 @@ const App = {
     setTheme(cls) {
         document.body.classList.remove('theme-dark', 'theme-sepia');
         if (cls) document.body.classList.add(cls);
+        Reader.applyThemeToEmbeddedContent?.();
     },
 
     startTTS() {
@@ -857,6 +909,7 @@ const App = {
         this.setAIStartLoading(true);
         contentEl.innerHTML = this.getAILoadingHTML('正在解读当前页', '正在读取文字和画面内容');
         ttsBar?.classList.add('hidden');
+        this.clearAITTSPreview();
         TTS.stop(); // 停止之前的朗读
         this.updateAITTSControls();
 
@@ -877,6 +930,11 @@ const App = {
             // AI 讲完 → 显示 TTS 控制条（用户可手动点击朗读）
             if (aiResult && isCurrentAIRead()) {
                 renderAI(aiResult, true);
+                this.syncAITTSPreviewFromContent();
+                if (this.isSmallScreen()) {
+                    this.mobileSubtitleMode = 'large';
+                    this.saveMobileSubtitlesSetting();
+                }
                 ttsBar?.classList.remove('hidden');
                 this.updateAITTSControls();
                 if (this.isSmallScreen()) this.closeRightPanel();
@@ -917,6 +975,7 @@ const App = {
         if (TTS.source === 'ai' && (TTS.speaking || TTS.paused)) {
             TTS.stop();
         }
+        this.clearAITTSPreview();
         const startBtn = document.getElementById('btn-ai-start');
         const contentEl = document.getElementById('ai-content');
         const ttsBar = document.getElementById('ai-tts-bar');
@@ -931,7 +990,71 @@ const App = {
 
     getAITTSText() {
         const raw = document.getElementById('ai-content')?.innerText || '';
-        return Voice.cleanForSpeech(raw);
+        return raw;
+    },
+
+    getAITTSSentences(text = this.getAITTSText()) {
+        if (typeof TTS === 'undefined' || typeof TTS.splitSentences !== 'function') return [];
+        return TTS.splitSentences(text)
+            .map(sentence => String(sentence || '').replace(/\s+/g, ' ').trim())
+            .filter(Boolean);
+    },
+
+    syncAITTSPreviewFromContent() {
+        const text = this.getAITTSText();
+        this.aiTTSPreviewText = text;
+        this.aiTTSPreviewSentences = this.getAITTSSentences(text);
+        if (this.aiTTSPreviewSentences.length === 0) {
+            this.aiTTSSelectedIndex = 0;
+        } else {
+            this.aiTTSSelectedIndex = Math.max(
+                0,
+                Math.min(this.aiTTSSelectedIndex, this.aiTTSPreviewSentences.length - 1)
+            );
+        }
+        return this.aiTTSPreviewSentences;
+    },
+
+    clearAITTSPreview() {
+        this.aiTTSPreviewText = '';
+        this.aiTTSPreviewSentences = [];
+        this.aiTTSSelectedIndex = 0;
+    },
+
+    startAITTSAt(index = 0) {
+        const text = this.aiTTSPreviewText || this.getAITTSText();
+        const root = document.getElementById('ai-content');
+        const sentences = this.aiTTSPreviewSentences.length
+            ? this.aiTTSPreviewSentences
+            : this.getAITTSSentences(text);
+        if (!text.trim() || !root || !sentences.length) return;
+
+        const startIndex = Math.max(0, Math.min(Math.floor(Number(index) || 0), sentences.length - 1));
+        this.aiTTSPreviewText = text;
+        this.aiTTSPreviewSentences = sentences;
+        this.aiTTSSelectedIndex = startIndex;
+        if (TTS.speaking || TTS.paused) TTS.stop();
+        TTS.speak(text, { source: 'ai', root, startIndex });
+    },
+
+    jumpToAISentence(index) {
+        if (!TTS.isSupported()) {
+            alert('当前浏览器不支持朗读功能');
+            return;
+        }
+        const sentences = TTS.source === 'ai' && TTS.sentences.length
+            ? TTS.sentences
+            : (this.aiTTSPreviewSentences.length ? this.aiTTSPreviewSentences : this.syncAITTSPreviewFromContent());
+        if (!sentences.length) return;
+
+        const targetIndex = Math.max(0, Math.min(Math.floor(Number(index) || 0), sentences.length - 1));
+        this.aiTTSSelectedIndex = targetIndex;
+        if (TTS.source === 'ai' && TTS.sentences.length && (TTS.speaking || TTS.paused || TTS.completed)) {
+            TTS.jumpToSentence(targetIndex);
+        } else {
+            this.startAITTSAt(targetIndex);
+        }
+        this.updateAITTSControls();
     },
 
     loadMobileSubtitlesSetting() {
@@ -967,42 +1090,143 @@ const App = {
         return String(TTS.sentences[index] || '').replace(/\s+/g, ' ').trim();
     },
 
-    renderMobileAISubtitleText(el, { showSubtitles, mode, currentSubtitle }) {
-        if (!el) return;
-        const useSentenceHighlight = showSubtitles &&
-            mode === 'large' &&
-            TTS.source === 'ai' &&
-            TTS.sentences.length > 0;
+    getMobileAISentences() {
+        if (TTS.source === 'ai' && TTS.sentences.length) return TTS.sentences;
+        if (this.aiTTSPreviewSentences.length) return this.aiTTSPreviewSentences;
+        return this.syncAITTSPreviewFromContent();
+    },
 
-        el.classList.toggle('has-sentence-highlight', useSentenceHighlight);
+    renderMobileAISubtitleText(el, { showSubtitles, mode, currentSubtitle, sentences = [], currentIndex = -1 }) {
+        if (!el) return;
+        const useSentenceList = showSubtitles &&
+            mode === 'large' &&
+            sentences.length > 0;
+
+        el.classList.toggle('has-sentence-highlight', useSentenceList);
         if (!showSubtitles) {
             el.textContent = '';
             return;
         }
-        if (!useSentenceHighlight) {
+        if (!useSentenceList) {
             el.textContent = currentSubtitle;
             return;
         }
 
-        const currentIndex = Math.max(0, Math.min(TTS.currentSentence, TTS.sentences.length - 1));
+        const activeIndex = Number.isFinite(currentIndex)
+            ? Math.max(-1, Math.min(currentIndex, sentences.length - 1))
+            : -1;
         const fragment = document.createDocumentFragment();
-        TTS.sentences.forEach((sentence, index) => {
+        sentences.forEach((sentence, index) => {
             const text = String(sentence || '').replace(/\s+/g, ' ').trim();
             if (!text) return;
-            const span = document.createElement('span');
-            span.className = 'mobile-ai-subtitle-sentence';
-            span.classList.toggle('is-past', index < currentIndex);
-            span.classList.toggle('is-current', index === currentIndex);
-            span.classList.toggle('is-future', index > currentIndex);
-            if (index === currentIndex) span.setAttribute('aria-current', 'true');
-            span.textContent = text;
-            fragment.appendChild(span);
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'mobile-ai-subtitle-sentence';
+            button.dataset.aiSentenceIndex = String(index);
+            button.classList.toggle('is-past', activeIndex >= 0 && index < activeIndex);
+            button.classList.toggle('is-current', index === activeIndex);
+            button.classList.toggle('is-future', activeIndex >= 0 && index > activeIndex);
+            button.title = `从第 ${index + 1} 句开始朗读`;
+            button.setAttribute('aria-label', `从第 ${index + 1} 句开始朗读`);
+            if (index === activeIndex) button.setAttribute('aria-current', 'true');
+            button.textContent = text;
+            fragment.appendChild(button);
         });
         el.replaceChildren(fragment);
-        requestAnimationFrame(() => {
-            el.querySelector('.mobile-ai-subtitle-sentence.is-current')
-                ?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-        });
+        if (activeIndex >= 0) {
+            requestAnimationFrame(() => {
+                el.querySelector('.mobile-ai-subtitle-sentence.is-current')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+            });
+        }
+    },
+
+    updateTTSControls() {
+        this.updateAITTSControls();
+        this.updateMobileBookTTSControls();
+    },
+
+    getBookTTSText() {
+        return Reader.getCurrentText() || '';
+    },
+
+    async startMobileBookTTS() {
+        await Reader.waitForCurrentPageReady?.(1200);
+        const text = this.getBookTTSText();
+        if (!text || !text.trim()) {
+            alert('当前页面没有可朗读的文字内容');
+            return;
+        }
+        if (TTS.speaking || TTS.paused) TTS.stop();
+        TTS.speak(text, { source: 'book' });
+    },
+
+    getMobileBookTTSNavIndex(direction) {
+        if (TTS.source !== 'book' || !TTS.sentences.length) return -1;
+        const step = direction < 0 ? -1 : 1;
+        const startIndex = TTS.currentSentence + step;
+        if (typeof TTS.findNavigableSentenceIndex === 'function') {
+            return TTS.findNavigableSentenceIndex(startIndex, step);
+        }
+        return startIndex >= 0 && startIndex < TTS.sentences.length ? startIndex : -1;
+    },
+
+    updateMobileBookTTSControls() {
+        const player = document.getElementById('mobile-tts-player');
+        const toggle = document.getElementById('btn-mobile-book-tts-toggle');
+        const prev = document.getElementById('btn-mobile-book-tts-prev');
+        const next = document.getElementById('btn-mobile-book-tts-next');
+        const ttsSupported = TTS.isSupported();
+        const isBookTTS = TTS.source === 'book';
+        const isActive = isBookTTS && (TTS.speaking || TTS.paused);
+        const isVisible = this.isSmallScreen() && isBookTTS && (TTS.speaking || TTS.paused || TTS.completed);
+        const prevIndex = this.getMobileBookTTSNavIndex(-1);
+        const nextIndex = this.getMobileBookTTSNavIndex(1);
+
+        if (player) {
+            player.classList.toggle('hidden', !isVisible);
+            player.classList.toggle('is-playing', isActive && !TTS.paused);
+        }
+        if (prev) prev.disabled = !ttsSupported || !isVisible || prevIndex < 0;
+        if (next) next.disabled = !ttsSupported || !isVisible || nextIndex < 0;
+        if (toggle) {
+            const label = !ttsSupported
+                ? '朗读不可用'
+                : isActive
+                    ? (TTS.paused ? '继续' : '暂停')
+                    : (isBookTTS && TTS.completed ? '重播' : '播放');
+            toggle.disabled = !ttsSupported;
+            toggle.title = label;
+            toggle.setAttribute('aria-label', label);
+        }
+        this.updateMobileToolbarState();
+        this.syncMobileReaderInsets();
+        requestAnimationFrame(() => this.syncMobileReaderInsets());
+    },
+
+    async toggleMobileBookTTS(action) {
+        if (!TTS.isSupported()) {
+            alert('当前浏览器不支持朗读功能');
+            return;
+        }
+        if (action === 'prev') {
+            if (TTS.source === 'book') TTS.previousSentence();
+            this.updateTTSControls();
+            return;
+        }
+        if (action === 'next') {
+            if (TTS.source === 'book') TTS.nextSentence();
+            this.updateTTSControls();
+            return;
+        }
+        if (TTS.source === 'book' && (TTS.speaking || TTS.paused)) {
+            if (TTS.paused) TTS.resume();
+            else TTS.pause();
+            this.updateTTSControls();
+            return;
+        }
+        await this.startMobileBookTTS();
+        this.updateTTSControls();
     },
 
     updateAITTSControls() {
@@ -1022,10 +1246,16 @@ const App = {
 
         const ttsSupported = TTS.isSupported();
         const isAITTS = TTS.source === 'ai';
+        const isBookTTS = TTS.source === 'book';
         const isActive = isAITTS && (TTS.speaking || TTS.paused);
         const canNavigateAITTS = isAITTS && TTS.sentences.length > 0 && (isActive || TTS.completed);
         const hasAIResult = !!ttsBar && !ttsBar.classList.contains('hidden');
         const currentSubtitle = this.getCurrentAISubtitleText();
+        const mode = this.mobileSubtitleMode;
+        const aiSentences = hasAIResult ? this.getMobileAISentences() : [];
+        const currentAIIndex = isAITTS && TTS.sentences.length
+            ? Math.min(TTS.currentSentence, TTS.sentences.length - 1)
+            : -1;
 
         if (toggleBtn) {
             toggleBtn.disabled = !ttsSupported || !hasAIResult;
@@ -1044,12 +1274,12 @@ const App = {
         }
 
         if (mobilePlayer) {
-            const showMobilePlayer = this.isSmallScreen() && hasAIResult;
+            const showMobilePlayer = this.isSmallScreen() && hasAIResult && !isBookTTS;
             mobilePlayer.classList.toggle('hidden', !showMobilePlayer);
             mobilePlayer.classList.toggle('is-playing', isActive && !TTS.paused);
         }
         if (mobileStart) {
-            const showMobileStart = this.isSmallScreen() && !hasAIResult;
+            const showMobileStart = this.isSmallScreen() && !hasAIResult && !isBookTTS;
             mobileStart.classList.toggle('hidden', !showMobileStart);
         }
         if (mobilePrev) mobilePrev.disabled = !ttsSupported || !canNavigateAITTS || TTS.currentSentence <= 0;
@@ -1066,19 +1296,25 @@ const App = {
         }
         if (mobileCaptionToggle) {
             const modeLabels = { large: '字幕大', small: '字幕小', off: '字幕关' };
-            const mode = this.mobileSubtitleMode;
             mobileCaptionToggle.textContent = modeLabels[mode] || '字幕关';
             mobileCaptionToggle.title = '切换字幕模式';
             mobileCaptionToggle.setAttribute('aria-label', '切换字幕模式');
             mobileCaptionToggle.classList.toggle('is-on', mode !== 'off');
         }
         if (mobileSubtitles) {
-            const mode = this.mobileSubtitleMode;
-            const showSubtitles = this.isSmallScreen() &&
+            const showLargeText = this.isSmallScreen() &&
+                hasAIResult &&
+                !isBookTTS &&
+                mode === 'large' &&
+                aiSentences.length > 0;
+            const showSmallSubtitle = this.isSmallScreen() &&
                 hasAIResult &&
                 isActive &&
-                mode !== 'off' &&
+                mode === 'small' &&
                 !!currentSubtitle;
+            const showSubtitles = (showLargeText || showSmallSubtitle) &&
+                mode !== 'off' &&
+                !isBookTTS;
             mobileSubtitles.classList.toggle('hidden', !showSubtitles);
             mobileSubtitles.classList.toggle('is-paused', TTS.paused);
             mobileSubtitles.classList.toggle('subtitle-large', mode === 'large');
@@ -1086,7 +1322,9 @@ const App = {
             this.renderMobileAISubtitleText(mobileSubtitleText, {
                 showSubtitles,
                 mode,
-                currentSubtitle
+                currentSubtitle,
+                sentences: aiSentences,
+                currentIndex: currentAIIndex
             });
         }
         this.updateMobileToolbarState();
@@ -1114,10 +1352,7 @@ const App = {
                 return;
             }
 
-            const text = this.getAITTSText();
-            const root = document.getElementById('ai-content');
-            if (TTS.speaking || TTS.paused) TTS.stop();
-            if (text.trim() && root) TTS.speak(text, { source: 'ai', root });
+            this.jumpToAISentence(0);
         } else if (action === 'prev') {
             if (TTS.source !== 'ai') return;
             TTS.previousSentence();
@@ -1126,6 +1361,20 @@ const App = {
             TTS.nextSentence();
         }
         this.updateAITTSControls();
+    },
+
+    bindMobileAISubtitles() {
+        const subtitles = document.getElementById('mobile-ai-subtitles');
+        if (!subtitles) return;
+        subtitles.addEventListener('click', (event) => {
+            const target = event.target?.closest?.('.mobile-ai-subtitle-sentence[data-ai-sentence-index]');
+            if (!target || !subtitles.contains(target)) return;
+            const index = Number(target.dataset.aiSentenceIndex);
+            if (!Number.isFinite(index)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            this.jumpToAISentence(index);
+        });
     },
 
     sendChat() {

@@ -39,6 +39,7 @@ const SmartReadVendor = {
     },
 
     async ensureEpub() {
+        await this.ensureJSZip();
         return this.ensure('epub');
     },
 

@@ -1,11 +1,11 @@
 /* ===== SmartRead same-origin API client ===== */
-const SmartReadAPIBase = (() => {
+var SmartReadAPIBase = (() => {
     const nativeBase = window.SmartReadNativeConfig?.apiBaseUrl || '';
     const metaBase = document.querySelector('meta[name="smartread-api-base"]')?.content || '';
     return String(nativeBase || metaBase || '').replace(/\/$/, '');
 })();
 
-const SmartReadAPI = {
+var SmartReadAPI = window.SmartReadAPI = {
     async request(path, options = {}) {
         const url = path.startsWith('http') ? path : SmartReadAPIBase + path;
         const headers = { ...(options.headers || {}) };
@@ -128,5 +128,3 @@ const SmartReadAPI = {
         });
     }
 };
-
-window.SmartReadAPI = SmartReadAPI;

@@ -7,6 +7,10 @@ const Voice = {
 
     init() {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (this.canUseAndroidNativeRecognition()) {
+            this.updateBtn();
+            return;
+        }
         if (this.canUseDesktopLocalRecognition()) {
             this.updateBtn();
             return;
@@ -47,6 +51,14 @@ const Voice = {
     },
 
     toggle() {
+        if (this.canUseAndroidNativeRecognition()) {
+            if (this.isListening) {
+                this.cancelAndroidNativeRecognition();
+            } else {
+                this.startAndroidNativeRecognition();
+            }
+            return;
+        }
         if (this.canUseDesktopLocalRecognition()) {
             if (this.isListening) {
                 this.cancelLocalRecognition();
@@ -78,6 +90,43 @@ const Voice = {
     canUseDesktopLocalRecognition() {
         return window.SmartReadDesktop?.platform === 'win32' &&
             typeof window.SmartReadDesktop.recognizeSpeech === 'function';
+    },
+
+    canUseAndroidNativeRecognition() {
+        return !!(window.SmartReadNativeBackend?.enabled && window.SmartReadAPI?.recognizeSpeech);
+    },
+
+    async startAndroidNativeRecognition() {
+        const runId = ++this.localRunId;
+        this.isListening = true;
+        this.lastError = '';
+        this.updateBtn();
+        try {
+            const result = await SmartReadAPI.recognizeSpeech({ lang: 'zh-CN' });
+            if (runId !== this.localRunId) return;
+            this.isListening = false;
+            const text = String(result?.text || '').trim();
+            if (!text) {
+                this.lastError = 'no-speech';
+                this.updateBtn();
+                alert(this.getRecognitionErrorMessage('no-speech'));
+                return;
+            }
+            this.applyRecognizedText(text);
+            this.updateBtn();
+        } catch (error) {
+            if (runId !== this.localRunId) return;
+            this.isListening = false;
+            this.lastError = error?.message || 'native-failed';
+            this.updateBtn();
+            alert(this.lastError);
+        }
+    },
+
+    cancelAndroidNativeRecognition() {
+        this.localRunId++;
+        this.isListening = false;
+        this.updateBtn();
     },
 
     async startLocalRecognition() {
@@ -134,6 +183,9 @@ const Voice = {
         if (window.SmartReadDesktop) {
             return '当前桌面环境没有可用的本地语音识别接口。';
         }
+        if (window.SmartReadNativeBackend?.enabled) {
+            return '当前 Android 系统没有可用的语音识别服务。';
+        }
         if (!window.isSecureContext) {
             return '语音输入需要 HTTPS 或 localhost 安全上下文。';
         }
@@ -174,8 +226,9 @@ const Voice = {
     updateBtn() {
         const btn = document.getElementById('btn-voice');
         if (!btn) return;
+        const androidSupported = this.canUseAndroidNativeRecognition();
         const localSupported = this.canUseDesktopLocalRecognition();
-        const supported = localSupported || !!this.recognition;
+        const supported = androidSupported || localSupported || !!this.recognition;
         const disabled = !supported || Chat.isSending;
         btn.disabled = disabled;
         btn.classList.toggle('is-listening', this.isListening);
@@ -186,7 +239,7 @@ const Voice = {
             ? (localSupported
                 ? this.getLocalRecognitionErrorMessage({ code: this.lastError })
                 : this.getRecognitionErrorMessage(this.lastError))
-            : (this.isListening ? '停止语音输入' : (localSupported ? '本地语音输入' : '语音输入'));
+            : (this.isListening ? '停止语音输入' : (androidSupported ? 'Android 本机语音输入' : (localSupported ? '本地语音输入' : '语音输入')));
         btn.setAttribute('aria-label', btn.title);
     },
 

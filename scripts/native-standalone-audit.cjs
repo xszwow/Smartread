@@ -13,13 +13,20 @@ checkCapacitorConfig("Capacitor root config", path.join(root, "capacitor.config.
 checkCapacitorConfig("Android embedded Capacitor config", path.join(root, "android", "app", "src", "main", "assets", "capacitor.config.json"));
 checkCapacitorConfig("iOS embedded Capacitor config", path.join(root, "ios", "App", "App", "capacitor.config.json"));
 
-checkStandaloneConfig("mobile-www native config", path.join(mobileDir, "native-config.js"));
-checkStandaloneConfig("Android native config", path.join(androidPublicDir, "native-config.js"));
-checkStandaloneConfig("iOS native config", path.join(iosPublicDir, "native-config.js"));
+checkNativeBackendConfig("mobile-www native config", path.join(mobileDir, "native-config.js"));
+checkNativeBackendConfig("Android native config", path.join(androidPublicDir, "native-config.js"));
+checkNativeBackendConfig("iOS native config", path.join(iosPublicDir, "native-config.js"));
+checkRequiredPublicFile("mobile-www root stylesheet", path.join(mobileDir, "index.css"));
+checkRequiredPublicFile("Android root stylesheet", path.join(androidPublicDir, "index.css"));
+checkRequiredPublicFile("iOS root stylesheet", path.join(iosPublicDir, "index.css"));
+checkRequiredPublicFile("mobile-www native backend bridge", path.join(mobileDir, "js", "native-backend.js"));
+checkRequiredPublicFile("Android native backend bridge", path.join(androidPublicDir, "js", "native-backend.js"));
+checkAndroidNativeBackendPlugin();
 
 checkIndexBootOrder("mobile-www index native config", path.join(mobileDir, "index.html"));
 checkIndexBootOrder("Android index native config", path.join(androidPublicDir, "index.html"));
 checkIndexBootOrder("iOS index native config", path.join(iosPublicDir, "index.html"));
+checkNativeAPIRebind("Native API client rebind", path.join(root, "js", "api.js"), path.join(root, "js", "native-backend.js"));
 
 comparePublicTree("Android embedded public resources", mobileDir, androidPublicDir);
 comparePublicTree("iOS embedded public resources", mobileDir, iosPublicDir);
@@ -48,14 +55,38 @@ function checkCapacitorConfig(name, filePath) {
   }
 }
 
-function checkStandaloneConfig(name, filePath) {
+function checkNativeBackendConfig(name, filePath) {
   if (!fs.existsSync(filePath)) {
     add(name, false, `missing: ${path.relative(root, filePath)}`);
     return;
   }
   const text = fs.readFileSync(filePath, "utf8");
-  const ok = /apiBaseUrl:\s*[""]/.test(text) && /standalone:\s*true/.test(text) && /appMode:\s*['"]mobile['"]/.test(text);
+  const ok = /apiBaseUrl:\s*[""]/.test(text) && /nativeBackend:\s*true/.test(text) && /standalone:\s*false/.test(text) && /appMode:\s*['"]mobile['"]/.test(text);
   add(name, ok, path.relative(root, filePath));
+}
+
+function checkRequiredPublicFile(name, filePath) {
+  const stat = fs.existsSync(filePath) ? fs.statSync(filePath) : null;
+  add(name, Boolean(stat && stat.size > 0), stat ? `${path.relative(root, filePath)} (${stat.size} bytes)` : `missing: ${path.relative(root, filePath)}`);
+}
+
+function checkAndroidNativeBackendPlugin() {
+  const mainActivity = path.join(root, "android", "app", "src", "main", "java", "com", "smartread", "app", "MainActivity.java");
+  const plugin = path.join(root, "android", "app", "src", "main", "java", "com", "smartread", "app", "SmartReadBackendPlugin.java");
+  const mainText = fs.existsSync(mainActivity) ? fs.readFileSync(mainActivity, "utf8") : "";
+  const pluginText = fs.existsSync(plugin) ? fs.readFileSync(plugin, "utf8") : "";
+  const methodNames = [
+    "searchZlib",
+    "startZlibDownload",
+    "aiChat",
+    "ttsSpeak",
+    "ttsStop",
+    "recognizeSpeech"
+  ];
+  const ok = /registerPlugin\(SmartReadBackendPlugin\.class\)/.test(mainText)
+    && /@CapacitorPlugin\([\s\S]*name\s*=\s*"SmartReadBackend"/.test(pluginText)
+    && methodNames.every((methodName) => new RegExp(`@PluginMethod[\\s\\S]+${methodName}`).test(pluginText));
+  add("Android native backend plugin", ok, ok ? "SmartReadBackendPlugin registered with zlib, AI, TTS and speech methods" : "missing plugin registration or methods");
 }
 
 function checkIndexBootOrder(name, filePath) {
@@ -67,6 +98,22 @@ function checkIndexBootOrder(name, filePath) {
   const nativeIndex = text.indexOf('src="native-config.js"');
   const apiIndex = text.indexOf('src="js/api.js"');
   add(name, nativeIndex >= 0 && apiIndex > nativeIndex, `native-config index=${nativeIndex}, api index=${apiIndex}`);
+}
+
+function checkNativeAPIRebind(name, apiPath, nativePath) {
+  if (!fs.existsSync(apiPath) || !fs.existsSync(nativePath)) {
+    add(name, false, "missing js/api.js or js/native-backend.js");
+    return;
+  }
+  const apiText = fs.readFileSync(apiPath, "utf8");
+  const nativeText = fs.readFileSync(nativePath, "utf8");
+  const apiUsesRebindableGlobal = /var\s+SmartReadAPI\s*=\s*window\.SmartReadAPI\s*=/.test(apiText);
+  const nativeRebindsIdentifier = /SmartReadAPI\s*=\s*window\.SmartReadAPI/.test(nativeText) && /SmartReadBackend/.test(nativeText);
+  add(
+    name,
+    apiUsesRebindableGlobal && nativeRebindsIdentifier,
+    `api global=${apiUsesRebindableGlobal}, native rebind=${nativeRebindsIdentifier}`
+  );
 }
 
 function comparePublicTree(name, sourceDir, targetDir) {

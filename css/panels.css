@@ -47,10 +47,25 @@ input[type="range"]::-webkit-slider-thumb {
     --bg-card-hover: rgba(255,255,255,0.1); --bg-glass: rgba(44,44,46,0.8); 
     --text-primary: #ffffff; --text-secondary: #ebebf5; --text-muted: #ebebf599; 
     --border: rgba(255,255,255,0.1); 
+    --reader-bg: #101014; --reader-page-bg: #1c1c1e; --pdf-stage-bg: #0f1014;
+    --pdf-status-bg: rgba(16,16,20,0.82); --pdf-page-filter: invert(1) hue-rotate(180deg) contrast(0.92) brightness(0.88);
 }
 .theme-sepia { 
-    --bg-primary: #f4ecd8; --bg-surface: #fdf6e3; --bg-card: rgba(253,246,227,0.8); 
-    --bg-card-hover: rgba(253,246,227,1); --bg-glass: rgba(253,246,227,0.8); 
-    --text-primary: #3b3127; --text-secondary: #5b4636; --text-muted: #8a7a6a; 
-    --border: rgba(91,70,54,0.1); 
+    --bg-primary: #e9d7b0; --bg-surface: #f4e5c3; --bg-card: rgba(244,229,195,0.9); 
+    --bg-card-hover: #ead4a7; --bg-glass: rgba(244,229,195,0.86); 
+    --accent: #8a5a1f; --accent-soft: rgba(138,90,31,0.16); --accent-glow: rgba(138,90,31,0.2);
+    --text-primary: #372713; --text-secondary: #5a4223; --text-muted: #866d48; 
+    --border: rgba(91,70,54,0.18); 
+    --reader-bg: #dfca9a; --reader-page-bg: #f3e0b4; --pdf-stage-bg: #dcc38c;
+    --pdf-status-bg: rgba(223,202,154,0.88); --pdf-page-filter: sepia(0.62) saturate(0.72) brightness(0.96) contrast(0.96);
+}
+
+.theme-sepia .pdf-page-canvas {
+    mix-blend-mode: multiply;
+    opacity: 0.94;
+}
+
+.theme-dark .pdf-page-canvas {
+    mix-blend-mode: normal;
+    opacity: 1;
 }

@@ -3,6 +3,9 @@ const AIService = {
 
     async chat(messages, onChunk) {
         if (!AIConfig.isConfigured()) throw new Error('请先在设置中配置 AI API Key');
+        if (window.SmartReadNativeBackend?.enabled) {
+            return this.nativeBackendChat(messages, onChunk);
+        }
         if (window.SmartReadNativeStandalone?.enabled) {
             return this.directNativeChat(messages, onChunk);
         }
@@ -34,6 +37,18 @@ const AIService = {
         return this.readStream(resp.body, onChunk);
     },
 
+    async nativeBackendChat(messages, onChunk) {
+        const cfg = AIConfig.load();
+        const data = await SmartReadAPI.aiChat({
+            model: cfg.model,
+            messages,
+            stream: false
+        });
+        const content = this.extractContent(data);
+        if (onChunk && content) onChunk(content, content);
+        return content;
+    },
+
     async directNativeChat(messages, onChunk) {
         const cfg = window.SmartReadNativeStandalone.readAIConfig();
         if (!cfg.apiKey) throw new Error('请先在设置中配置 AI API Key');
@@ -59,9 +74,18 @@ const AIService = {
             throw new Error(message);
         }
         const data = await resp.json();
-        const content = data.choices?.[0]?.message?.content || '';
+        const content = this.extractContent(data);
         if (onChunk && content) onChunk(content, content);
         return content;
+    },
+
+    extractContent(data) {
+        if (typeof data === 'string') return data;
+        return data?.choices?.[0]?.message?.content ||
+            data?.choices?.[0]?.delta?.content ||
+            data?.content ||
+            data?.text ||
+            '';
     },
 
     toChatCompletionsURL(baseURL) {

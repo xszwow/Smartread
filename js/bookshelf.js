@@ -33,6 +33,14 @@ const Bookshelf = {
         return !!window.SmartReadNativeStandalone?.enabled;
     },
 
+    isNativeBackend() {
+        return !!window.SmartReadNativeBackend?.enabled;
+    },
+
+    hasNativeBackend() {
+        return this.isNativeBackend() || !!window.SmartReadNativeStandalone?.hasNativeBackend?.();
+    },
+
     bindEvents() {
         const localSearchInput = document.getElementById('search-input');
         const runLocalSearch = () => {
@@ -172,7 +180,7 @@ const Bookshelf = {
 
     requireSmartReadSignedIn(message) {
         if (this.user) return true;
-            this.cloud.message = message || (this.isNativeStandalone() ? '请先进入本机书架。' : '请先登录 SmartRead。');
+            this.cloud.message = message || (this.isNativeStandalone() || this.isNativeBackend() ? '请先进入本机书架。' : '请先登录 SmartRead。');
         this.render();
         document.getElementById('cloud-section')?.scrollIntoView({ behavior: 'smooth' });
         return false;
@@ -463,72 +471,52 @@ const Bookshelf = {
         const recent = this.getRecentBook();
         const bookCount = this.books.length;
         const standalone = this.isNativeStandalone();
-        const primary = recent ? 'continue' : (bookCount ? 'library' : 'import');
         const status = recent
             ? `继续《${recent.title}》`
             : (bookCount ? `${bookCount} 本书 / 尚未开始阅读` : '0 本书 / 支持 EPUB · PDF · TXT');
-        const tiles = [];
-
-        if (primary === 'continue') {
-            tiles.push({
-                key: 'continue',
-                size: 'primary',
-                tone: 'continue',
-                kicker: 'CONTINUE',
-                title: '继续阅读',
-                detail: recent.title,
-                meta: `已读 ${Math.round(recent.progress || 0)}%`,
-                onclick: 'Bookshelf.openRecentBook()'
-            });
-        } else if (primary === 'library') {
-            tiles.push({
-                key: 'library',
-                size: 'primary',
-                tone: 'library',
-                kicker: 'LIBRARY',
-                title: '我的书架',
-                detail: `${bookCount} 本书`,
-                meta: '选择一本开始读',
-                onclick: 'Bookshelf.openMobileLibrary()'
-            });
-        } else {
-            tiles.push({
-                key: 'import',
-                size: 'primary',
-                tone: 'import',
-                kicker: 'LOCAL',
-                title: '导入本地书',
-                detail: 'EPUB / PDF / TXT',
-                meta: '选择文件',
-                onclick: 'Bookshelf.openMobileImport()'
-            });
-        }
-
-        if (primary !== 'library' && bookCount > 0) {
-            tiles.push({
+        const tiles = [
+            recent
+                ? {
+                    key: 'continue',
+                    size: 'primary',
+                    tone: 'continue',
+                    kicker: 'CONTINUE',
+                    title: '继续阅读',
+                    detail: recent.title,
+                    meta: `已读 ${Math.round(recent.progress || 0)}%`,
+                    onclick: 'Bookshelf.openRecentBook()'
+                }
+                : {
+                    key: 'continue',
+                    size: 'primary',
+                    tone: bookCount ? 'library' : 'continue',
+                    kicker: bookCount ? 'LIBRARY' : 'CONTINUE',
+                    title: bookCount ? '打开书架' : '开始阅读',
+                    detail: bookCount ? `${bookCount} 本书` : '先导入一本书',
+                    meta: bookCount ? '选择一本开始读' : '新建书架',
+                    onclick: bookCount ? 'Bookshelf.openMobileLibrary()' : 'Bookshelf.openMobileImport()'
+                },
+            {
                 key: 'library',
                 size: 'wide',
                 tone: 'library',
                 kicker: 'LIBRARY',
                 title: '我的书架',
                 detail: `${bookCount} 本书`,
-                meta: '书架列表',
+                meta: bookCount ? '书架列表' : '暂无书籍',
                 onclick: 'Bookshelf.openMobileLibrary()'
-            });
-        }
-        if (primary !== 'import') {
-            tiles.push({
+            },
+            {
                 key: 'import',
-                size: primary === 'continue' ? 'small' : 'wide',
+                size: 'wide',
                 tone: 'import',
                 kicker: 'LOCAL',
                 title: '导入',
                 detail: '本地书',
-                meta: primary === 'continue' ? '文件' : 'EPUB/PDF/TXT',
+                meta: '文件',
                 onclick: 'Bookshelf.openMobileImport()'
-            });
-        }
-        tiles.push({
+            },
+            {
             key: 'online',
             size: 'wide',
             tone: 'online',
@@ -537,18 +525,8 @@ const Bookshelf = {
             detail: standalone ? '不经服务器' : (this.zlibBound ? 'Z-Library 已绑定' : 'Z-Library 待绑定'),
             meta: standalone ? '下载后导入' : (this.zlibBound ? '搜索下载' : '先绑定'),
             onclick: 'Bookshelf.openMobileOnline()'
-        });
-        tiles.push({
-            key: 'ai',
-            size: 'small',
-            tone: 'ai',
-            kicker: 'AI',
-            title: 'AI',
-            detail: this.aiConfigured ? '已配置' : '待配置',
-            meta: '设置',
-            onclick: 'Bookshelf.openMobileAI()'
-        });
-        tiles.push({
+            },
+            {
             key: 'account',
             size: 'small',
             tone: 'account',
@@ -557,7 +535,18 @@ const Bookshelf = {
             detail: standalone ? '单机模式' : (this.zlibBound ? '服务正常' : '服务待补齐'),
             meta: '状态',
             onclick: 'Bookshelf.openMobileAccount()'
-        });
+            },
+            {
+            key: 'ai',
+            size: 'small',
+            tone: 'ai',
+            kicker: 'AI',
+            title: 'AI',
+            detail: this.aiConfigured ? '已配置' : '待配置',
+            meta: '设置',
+            onclick: 'Bookshelf.openMobileAI()'
+            }
+        ];
 
         return `<section id="mobile-dashboard-home" class="mobile-dashboard-home" aria-label="智读功能主页">
                 <div class="mobile-dashboard-head">
@@ -677,7 +666,7 @@ const Bookshelf = {
     },
 
     mobileEmptyOnlineHTML() {
-        if (this.isNativeStandalone()) return this.mobileStandaloneOnlineHTML();
+        if (this.isNativeStandalone() && !this.hasNativeBackend()) return this.mobileStandaloneOnlineHTML();
         const content = this.cloud.rebinding
             ? this.mobileZlibBindHTML(true)
             : this.zlibBound
@@ -1008,8 +997,10 @@ const Bookshelf = {
         const title = document.getElementById('cloud-title');
         if (this.isNativeStandalone()) {
             if (kicker) kicker.textContent = 'LOCAL';
-            if (title) title.textContent = '本机单机版';
-            body.innerHTML = this.standaloneCloudHTML();
+            if (title) title.textContent = this.hasNativeBackend() ? '本机原生书源' : '本机单机版';
+            body.innerHTML = this.hasNativeBackend()
+                ? this.nativeBackendCloudHTML()
+                : this.standaloneCloudHTML();
             return;
         }
         if (kicker) kicker.textContent = this.user ? 'ACCOUNT' : 'SMARTREAD';
@@ -1026,6 +1017,31 @@ const Bookshelf = {
                     <span>SmartRead 已登录，本地书架和阅读进度会按邮箱隔离保存。</span>
                 </div>
                 <button class="btn btn-icon" onclick="Bookshelf.logout()">退出</button>
+            </div>
+            <div class="cloud-status-grid">
+                <button class="cloud-status-card ${this.aiConfigured ? 'is-ready' : ''}" onclick="App.togglePanel('settings')">
+                    <span>AI API</span>
+                    <strong>${this.aiConfigured ? '已配置' : '待配置'}</strong>
+                </button>
+                <button class="cloud-status-card ${this.zlibBound ? 'is-ready' : ''}" onclick="document.getElementById('zlib-bind-email')?.focus()">
+                    <span>Z-Library</span>
+                    <strong>${this.zlibBound ? '已绑定' : '可选绑定'}</strong>
+                </button>
+            </div>
+            ${this.cloud.message ? `<div class="cloud-message">${escapeHTML(this.cloud.message)}</div>` : ''}
+            ${this.cloud.rebinding
+                ? this.zlibBindHTML(true)
+                : this.zlibBound
+                    ? this.zlibBoundHTML() + this.onlineSearchHTML()
+                    : this.zlibBindHTML()}`;
+    },
+
+    nativeBackendCloudHTML() {
+        return `<div class="cloud-account-row">
+                <div>
+                    <strong>本机书架</strong>
+                    <span>Android 原生层保存书源账号、下载文件和在线书籍记录，不依赖 SmartRead 服务器。</span>
+                </div>
             </div>
             <div class="cloud-status-grid">
                 <button class="cloud-status-card ${this.aiConfigured ? 'is-ready' : ''}" onclick="App.togglePanel('settings')">
@@ -1187,9 +1203,12 @@ const Bookshelf = {
     onlineResultHTML(result, index) {
         const authors = (result.authors || []).join(', ') || '未知作者';
         const inShelf = this.cloud.serverBooks.some(book => book.sourceId === result.sourceId);
+        const coverUrl = result.coverUrl && !/cover-not-exists/i.test(result.coverUrl)
+            ? result.coverUrl
+            : '';
         return `
             <article class="online-result">
-                <div class="online-cover">${result.coverUrl ? `<img src="${escapeAttr(result.coverUrl)}" alt="">` : '书'}</div>
+                <div class="online-cover">${coverUrl ? `<img src="${escapeAttr(coverUrl)}" alt="" onerror="this.replaceWith(document.createTextNode('书'))">` : '书'}</div>
                 <div class="online-info">
                     <h3>${escapeHTML(result.title)}</h3>
                     <p>${escapeHTML(authors)}</p>
@@ -1294,7 +1313,11 @@ const Bookshelf = {
             this.cloud.busy = true;
             this.cloud.message = '正在绑定 Z-Library 书源...';
             this.renderCloudSurface();
-            await SmartReadAPI.bindZlib({ email, password });
+            await this.withTimeout(
+                SmartReadAPI.bindZlib({ email, password }),
+                45000,
+                '绑定 Z-Library 超时，请检查网络后重试。'
+            );
             this.zlibBound = true;
             this.cloud.rebinding = false;
             this.cloud.message = '';
@@ -1503,5 +1526,14 @@ const Bookshelf = {
             this.cloud.message = `${prefix}: ${err.message}`;
             this.renderCloudSurface();
         }
+    },
+
+    withTimeout(promise, timeoutMs, message) {
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+            Promise.resolve(promise)
+                .then(resolve, reject)
+                .finally(() => clearTimeout(timer));
+        });
     }
 };

@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智读 SmartRead - AI 智能阅读</title>
     <meta name="description" content="融合AI能力的新一代电子阅读软件">
+    <link rel="icon" href="data:,">
     <link rel="stylesheet" href="index.css">
     <link rel="stylesheet" href="css/bookshelf.css?v=zlib-rebind-20260518a">
     <link rel="stylesheet" href="css/reader.css">
@@ -122,7 +123,7 @@
         </div>
         <!-- 阅读器视图（三栏布局） -->
         <div id="reader-view" class="view">
-            <button id="mobile-menu-toggle" class="mobile-menu-toggle" onclick="App.toggleMobileMenu()" title="菜单" aria-label="菜单">
+            <button id="mobile-menu-toggle" class="mobile-menu-toggle" type="button" onclick="App.toggleMobileMenu()" title="菜单" aria-label="菜单">
                 <span></span><span></span><span></span>
             </button>
             <div id="mobile-menu-scrim" class="mobile-menu-scrim hidden" onclick="App.closeMobileMenu()"></div>
@@ -131,31 +132,31 @@
             </button>
             <!-- 左侧工具栏 -->
             <nav class="sidebar">
-                <button id="btn-back" class="sb-btn" title="返回书架" aria-label="返回书架">
+                <button id="btn-back" class="sb-btn" type="button" title="返回书架" aria-label="返回书架">
                     <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path><path d="M10 12h10"></path><path d="M4 5v14"></path></svg>
                 </button>
                 <div class="sb-sep"></div>
-                <button id="btn-toc" class="sb-btn" title="目录" aria-label="目录">
+                <button id="btn-toc" class="sb-btn" type="button" title="目录" aria-label="目录">
                     <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg>
                 </button>
-                <button id="btn-theme" class="sb-btn" title="主题" aria-label="主题">
+                <button id="btn-theme" class="sb-btn" type="button" title="主题" aria-label="主题">
                     <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
                 </button>
-                <button id="btn-font-size" class="sb-btn" title="字体" aria-label="字体">Aa</button>
-                <button id="btn-magnifier" class="sb-btn" title="放大镜" aria-label="放大镜" aria-pressed="false">
+                <button id="btn-font-size" class="sb-btn" type="button" title="字体" aria-label="字体">Aa</button>
+                <button id="btn-magnifier" class="sb-btn" type="button" title="放大镜" aria-label="放大镜" aria-pressed="false">
                     <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4.2-4.2"></path><path d="M11 8v6"></path><path d="M8 11h6"></path></svg>
                 </button>
-                <button id="btn-notes" class="sb-btn" title="笔记" aria-label="笔记">
+                <button id="btn-notes" class="sb-btn" type="button" title="笔记" aria-label="笔记">
                     <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h12l4 4v12H4z"></path><path d="M16 4v4h4"></path><path d="M8 13h8"></path><path d="M8 17h5"></path></svg>
                 </button>
-                <button id="btn-map" class="sb-btn" title="图谱" aria-label="图谱">
+                <button id="btn-map" class="sb-btn" type="button" title="图谱" aria-label="图谱">
                     <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="3"></circle><circle cx="18" cy="7" r="3"></circle><circle cx="12" cy="18" r="3"></circle><path d="m8.5 7.2 7 1.5"></path><path d="m7.7 8.5 3 7"></path><path d="m16.4 9.4-3 6"></path></svg>
                 </button>
                 <div class="sb-spacer"></div>
-                <button id="btn-toggle-chat" class="sb-btn" title="聊天面板" aria-label="聊天面板" aria-controls="right-panel" aria-expanded="false">
+                <button id="btn-toggle-chat" class="sb-btn" type="button" title="聊天面板" aria-label="聊天面板" aria-controls="right-panel" aria-expanded="false">
                     <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg>
                 </button>
-                <button id="btn-settings" class="sb-btn" title="设置" aria-label="设置">
+                <button id="btn-settings" class="sb-btn" type="button" title="设置" aria-label="设置">
                     <svg class="sb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"></path><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.38 1.06V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.06-.38H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .38-1.06V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.42.2.77.5 1 .9.2.3.55.5.97.5H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15z"></path></svg>
                 </button>
             </nav>
@@ -172,8 +173,8 @@
                 <div id="reader-content" class="reader-body">
                     <div id="book-content" class="book-text"></div>
                     <!-- 浮动翻页按钮 -->
-                    <button id="btn-prev" class="float-nav-btn prev">‹</button>
-                    <button id="btn-next" class="float-nav-btn next">›</button>
+                    <button id="btn-prev" class="float-nav-btn prev" type="button">‹</button>
+                    <button id="btn-next" class="float-nav-btn next" type="button">›</button>
                 </div>
             </main>
             <!-- 右侧面板 -->
@@ -204,9 +205,9 @@
                             <h3>智读 AI</h3>
                             <p>关于当前阅读内容，你可以问我任何问题</p>
                             <div class="chat-suggestions">
-                                <button class="chat-suggestion-btn" onclick="App.sendChatText('帮我总结这一页的要点')">📝 帮我总结这一页的要点</button>
-                                <button class="chat-suggestion-btn" onclick="App.sendChatText('用简单的话解释一下')">💡 用简单的话解释一下</button>
-                                <button class="chat-suggestion-btn" onclick="App.sendChatText('这段内容有什么深层含义？')">🔍 这段内容有什么深层含义？</button>
+                                <button class="chat-suggestion-btn" type="button" onclick="App.sendChatText('帮我总结这一页的要点')">📝 帮我总结这一页的要点</button>
+                                <button class="chat-suggestion-btn" type="button" onclick="App.sendChatText('用简单的话解释一下')">💡 用简单的话解释一下</button>
+                                <button class="chat-suggestion-btn" type="button" onclick="App.sendChatText('这段内容有什么深层含义？')">🔍 这段内容有什么深层含义？</button>
                             </div>
                         </div>
                     </div>
@@ -234,24 +235,24 @@
                             oninput="TTS.setSpeed(this.value);document.getElementById('speed-display').textContent=this.value+'x'">
                     </div>
                     <div class="tts-controls">
-                        <button id="btn-tts-play" class="btn btn-primary btn-tts-play" onclick="App.startTTS()">▶ 开始朗读</button>
-                        <button class="btn btn-icon" onclick="TTS.pause()">⏸ 暂停</button>
-                        <button class="btn btn-icon" onclick="TTS.resume()">▶ 继续</button>
-                        <button class="btn btn-icon" onclick="TTS.stop()">⏹ 停止</button>
+                        <button id="btn-tts-play" class="btn btn-primary btn-tts-play" type="button" onclick="App.startTTS()">▶ 开始朗读</button>
+                        <button class="btn btn-icon" type="button" onclick="TTS.pause()">⏸ 暂停</button>
+                        <button class="btn btn-icon" type="button" onclick="TTS.resume()">▶ 继续</button>
+                        <button class="btn btn-icon" type="button" onclick="TTS.stop()">⏹ 停止</button>
                     </div>
                 </div>
                 <div id="rp-ai" class="rp-content" role="tabpanel" aria-labelledby="rp-tab-ai" aria-hidden="true" style="overflow-y:auto">
                     <!-- 顶部：语言+开始 -->
                     <div class="ai-toolbar">
-                        <button class="ai-page-btn" onclick="Reader.prevPage()" title="上一页" aria-label="上一页">‹</button>
-                        <button class="ai-page-btn" onclick="Reader.nextPage()" title="下一页" aria-label="下一页">›</button>
+                        <button class="ai-page-btn" type="button" onclick="Reader.prevPage()" title="上一页" aria-label="上一页">‹</button>
+                        <button class="ai-page-btn" type="button" onclick="Reader.nextPage()" title="下一页" aria-label="下一页">›</button>
                         <select id="ai-lang" class="ai-select" aria-label="解读语言">
                             <option value="zh-CN">🇨🇳 中文</option>
                             <option value="en">🇺🇸 English</option>
                             <option value="ja">🇯🇵 日本語</option>
                             <option value="ko">🇰🇷 한국어</option>
                         </select>
-                        <button id="btn-ai-start" class="ai-start-btn" onclick="App.triggerAIRead()">
+                        <button id="btn-ai-start" class="ai-start-btn" type="button" onclick="App.triggerAIRead()">
                             <span class="ai-start-icon" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" focusable="false">
                                     <path d="M5 5.5h5.5A2.5 2.5 0 0 1 13 8v11a2.5 2.5 0 0 0-2.5-2.5H5z"></path>
@@ -270,10 +271,10 @@
                     </div>
                     <!-- TTS 控制条 -->
                     <div id="ai-tts-bar" class="ai-tts-bar hidden">
-                        <button id="btn-ai-tts-prev" class="ai-tts-btn ai-tts-skip" onclick="App.toggleAITTS('prev')" title="上一句">⏪ 上一句</button>
-                        <button id="btn-ai-tts-toggle" class="ai-tts-btn ai-tts-main" onclick="App.toggleAITTS('toggle')" title="播放或暂停">▶ 听解读</button>
-                        <button id="btn-ai-tts-next" class="ai-tts-btn ai-tts-skip" onclick="App.toggleAITTS('next')" title="下一句">下一句 ⏩</button>
-                        <button id="btn-ai-tts-speed" class="ai-tts-speed" onclick="App.cycleAITTSSpeed()" title="切换语速">1.0x</button>
+                        <button id="btn-ai-tts-prev" class="ai-tts-btn ai-tts-skip" type="button" onclick="App.toggleAITTS('prev')" title="上一句">⏪ 上一句</button>
+                        <button id="btn-ai-tts-toggle" class="ai-tts-btn ai-tts-main" type="button" onclick="App.toggleAITTS('toggle')" title="播放或暂停">▶ 听解读</button>
+                        <button id="btn-ai-tts-next" class="ai-tts-btn ai-tts-skip" type="button" onclick="App.toggleAITTS('next')" title="下一句">下一句 ⏩</button>
+                        <button id="btn-ai-tts-speed" class="ai-tts-speed" type="button" onclick="App.cycleAITTSSpeed()" title="切换语速">1.0x</button>
                     </div>
                 </div>
             </aside>
@@ -294,7 +295,7 @@
                     <span class="mobile-reader-tool-text">Aa</span>
                     <span>显示</span>
                 </button>
-                <button id="btn-mobile-ai" class="mobile-reader-tool primary" type="button" onclick="App.openMobileAI()" aria-label="AI">
+                <button id="btn-mobile-ai" class="mobile-reader-tool" type="button" onclick="App.openMobileAI()" aria-label="AI">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h5.5A2.5 2.5 0 0 1 13 8v11a2.5 2.5 0 0 0-2.5-2.5H5z"></path><path d="M19 7.5h-3.5A2.5 2.5 0 0 0 13 10v9a2.5 2.5 0 0 1 2.5-2.5H19z"></path></svg>
                     <span>AI</span>
                 </button>
@@ -307,7 +308,7 @@
                     <span>更多</span>
                 </button>
             </nav>
-            <button id="btn-mobile-ai-start" class="mobile-ai-start-btn" onclick="App.triggerAIRead()" aria-label="开始解读">
+            <button id="btn-mobile-ai-start" class="mobile-ai-start-btn" type="button" onclick="App.triggerAIRead()" aria-label="开始解读">
                 <span class="ai-start-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" focusable="false">
                         <path d="M5 5.5h5.5A2.5 2.5 0 0 1 13 8v11a2.5 2.5 0 0 0-2.5-2.5H5z"></path>
@@ -319,17 +320,29 @@
                 <span class="ai-start-label">开始解读</span>
             </button>
             <div id="mobile-ai-player" class="mobile-ai-player hidden" aria-label="AI 解读播放控制">
-                <button id="btn-mobile-ai-tts-prev" class="mobile-player-btn" onclick="App.toggleAITTS('prev')" title="上一句" aria-label="上一句">
+                <button id="btn-mobile-ai-tts-prev" class="mobile-player-btn" type="button" onclick="App.toggleAITTS('prev')" title="上一句" aria-label="上一句">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 6 5 12l6 6V6z"></path><path d="M19 6l-6 6 6 6V6z"></path></svg>
                 </button>
-                <button id="btn-mobile-ai-tts-toggle" class="mobile-player-main" onclick="App.toggleAITTS('toggle')" title="暂停或继续" aria-label="暂停或继续">
+                <button id="btn-mobile-ai-tts-toggle" class="mobile-player-main" type="button" onclick="App.toggleAITTS('toggle')" title="暂停或继续" aria-label="暂停或继续">
                     <svg class="mobile-player-icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.8v12.4c0 .9 1 1.4 1.8.9l9.2-6.2a1.1 1.1 0 0 0 0-1.8L9.8 4.9C9 4.4 8 4.9 8 5.8z"></path></svg>
                     <svg class="mobile-player-icon-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5" width="3.5" height="14" rx="1.2"></rect><rect x="13.5" y="5" width="3.5" height="14" rx="1.2"></rect></svg>
                 </button>
-                <button id="btn-mobile-ai-tts-next" class="mobile-player-btn" onclick="App.toggleAITTS('next')" title="下一句" aria-label="下一句">
+                <button id="btn-mobile-ai-tts-next" class="mobile-player-btn" type="button" onclick="App.toggleAITTS('next')" title="下一句" aria-label="下一句">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 6 6 6-6 6V6z"></path><path d="m5 6 6 6-6 6V6z"></path></svg>
                 </button>
-                <button id="btn-mobile-subtitles-toggle" class="mobile-caption-toggle is-on" onclick="App.cycleMobileSubtitles()" title="切换字幕模式" aria-label="切换字幕模式">字幕大</button>
+                <button id="btn-mobile-subtitles-toggle" class="mobile-caption-toggle is-on" type="button" onclick="App.cycleMobileSubtitles()" title="切换字幕模式" aria-label="切换字幕模式">字幕大</button>
+            </div>
+            <div id="mobile-tts-player" class="mobile-ai-player mobile-tts-player hidden" aria-label="朗读播放控制">
+                <button id="btn-mobile-book-tts-prev" class="mobile-player-btn" type="button" onclick="App.toggleMobileBookTTS('prev')" title="上一句" aria-label="上一句">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 6 5 12l6 6V6z"></path><path d="M19 6l-6 6 6 6V6z"></path></svg>
+                </button>
+                <button id="btn-mobile-book-tts-toggle" class="mobile-player-main" type="button" onclick="App.toggleMobileBookTTS('toggle')" title="播放" aria-label="播放">
+                    <svg class="mobile-player-icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.8v12.4c0 .9 1 1.4 1.8.9l9.2-6.2a1.1 1.1 0 0 0 0-1.8L9.8 4.9C9 4.4 8 4.9 8 5.8z"></path></svg>
+                    <svg class="mobile-player-icon-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5" width="3.5" height="14" rx="1.2"></rect><rect x="13.5" y="5" width="3.5" height="14" rx="1.2"></rect></svg>
+                </button>
+                <button id="btn-mobile-book-tts-next" class="mobile-player-btn" type="button" onclick="App.toggleMobileBookTTS('next')" title="下一句" aria-label="下一句">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 6 6 6-6 6V6z"></path><path d="m5 6 6 6-6 6V6z"></path></svg>
+                </button>
             </div>
             <div id="mobile-ai-subtitles" class="mobile-ai-subtitles hidden" aria-live="polite" aria-label="AI 解读字幕">
                 <div id="mobile-ai-subtitle-text" class="mobile-ai-subtitle-text"></div>
@@ -347,6 +360,7 @@
     </div>
 
     <script src="js/api.js"></script>
+    <script src="js/native-backend.js"></script>
     <script src="js/native-standalone.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/vendor-loader.js"></script>

@@ -48,10 +48,17 @@ adb install -r .\android\app\build\outputs\apk\release\app-release.apk
 Android 默认是单机模式：
 
 - 不连接外部 SmartRead 服务器。
+- 当前 APK 使用 `android-native-backend`：认证态、书架、Z-Library 绑定/搜索/下载、AI 配置和 AI chat 都通过 Android 原生 Capacitor 插件在手机本机执行。
 - 本地导入 EPUB / PDF / TXT。
 - 书籍与进度保存在设备本地。
-- 在线书源入口会打开网页书源，下载后再导入本地。
-- AI 可使用用户自己配置的 OpenAI-compatible API 地址和 Key 直连。
+- 在线书源可绑定 Z-Library 后在 APK 内搜索和触发下载；外部镜像可用性仍取决于 Z-Library 当前服务状态。
+- 在线下载的大体积 PDF 直接通过 Android 本机文件路径读取，避免把漫画/扫描版 PDF 通过 JS bridge 转 base64 导致卡顿或打不开。
+- PDF 阅读器支持读取文件内置 outline/bookmarks 作为目录；扫描漫画 PDF 如果文件本身没有书签，则显示暂无目录。
+- AI 可使用用户自己配置的 OpenAI-compatible API 地址和 Key 直连，支持 HTTP/HTTPS chat completions。
+- AI 解读、聊天面板、当前句子高亮朗读、上一句/下一句、停止朗读和字幕大/小/关闭在 Android WebView 中优先走 Android 原生 `TextToSpeech`。
+- 移动端 AI 解读生成后默认显示可滚动的全文大字幕遮罩，但不会自动开始朗读；全文遮罩、朗读播放器和底部阅读工具栏使用固定底部控件栈布局，遮罩滚动区域截止在播放器上方，不与底部控件重叠；点击“听解读”或点击任意句子后，才从目标句启动朗读并高亮当前句。
+- 语音输入入口优先走 Android 系统语音识别，APK 包含 `RECORD_AUDIO` 权限。
+- 移动阅读主页是固定矩形网格：继续阅读占左侧两行，我的书架在右上，导入横跨右中两格，在线找书在左下，账号和 AI 在右下并排。
 
 ### iOS
 
@@ -157,6 +164,15 @@ Web Server 是可选形态。需要配置 HTTPS、cookie、邮箱验证码、AI 
 
 - TypeScript build 通过。
 - Vitest 后端测试 19 个通过。
+- Android debug APK 构建成功并安装到真机 `d66fdb58`。
+- Android native backend audit 通过：APK 无外部 `server.url`，内嵌 public 资源与 `mobile-www` 一致，Android 插件注册并覆盖 zlib、AI、TTS 和 speech 方法。
+- Android APK 签名校验通过：APK Signature Scheme v2 为 `true`；包内包含 `INTERNET` 和 `RECORD_AUDIO` 权限。
+- Android 真机 AI 验证通过：`SmartReadAPI.aiChat`、`AIService.chat`、聊天面板和 AI 解读均返回有效文本。
+- Android 真机 TTS 验证通过：`SmartReadAPI.ttsSpeak` 2.5 秒后仍在播放等待状态，`ttsStatus.ready=true`；前端长句朗读中 `TTS.speaking=true`，当前句子高亮存在，下一句后仍保持朗读。
+- Android 真机字幕验证通过：大字幕容器和文本宽度未超过视口，页面没有横向滚动。
+- 移动端 AI 解读 DOM 验证通过：生成结果后全文遮罩和播放器显示、`TTS.speaking=false`；点击第 3 句后 `TTS.source=ai`、`TTS.currentSentence=2`，遮罩内第 3 句高亮。
+- 移动端 AI 解读布局回归通过：全文遮罩底边到播放器 44px，播放器到底部工具栏 28px，滚动到末尾时最后一句仍停在播放器上方，不与底部控件重叠。
+- Android 真机移动主页验证通过：导入横跨原导入和 AI 两格，AI 下移到账号右侧；页面保持矩形网格且无横向溢出。
 - 桌面服务 smoke 通过。
 - Windows 打包版 smoke 通过：启动页非白屏截图、自动本机登录、TXT 导入、进入阅读器。
 - Windows 安装版 smoke 通过：已安装 `SmartRead.exe` 签名有效、启动页非白屏截图、自动本机登录、TXT 导入、进入阅读器。

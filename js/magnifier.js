@@ -254,6 +254,15 @@ const Magnifier = {
             return;
         }
 
+        const epubClone = this.createEpubPageClone();
+        if (epubClone) {
+            this.sourceClone = epubClone;
+            this.lens.appendChild(epubClone);
+            this.applyScale();
+            this.repositionLastPointer();
+            return;
+        }
+
         const clone = this.book.cloneNode(true);
         clone.removeAttribute('id');
         clone.classList.add('reader-magnifier-source');
@@ -273,11 +282,12 @@ const Magnifier = {
 
     createImagePageClone() {
         if (!this.book?.classList.contains('book-epub')) return null;
-        const frame = this.book.querySelector('iframe');
+        const current = Reader.getCurrentEpubContent?.();
+        const frame = current?.doc?.defaultView?.frameElement || null;
         if (!frame) return null;
 
         try {
-            const doc = frame.contentDocument;
+            const doc = current.doc;
             const body = doc?.body;
             if (!doc || !body) return null;
 
@@ -314,6 +324,52 @@ const Magnifier = {
                 clone.appendChild(img);
             });
 
+            return clone;
+        } catch {
+            return null;
+        }
+    },
+
+    createEpubPageClone() {
+        if (!this.book?.classList.contains('book-epub')) return null;
+        const current = Reader.getCurrentEpubContent?.();
+        const frame = current?.doc?.defaultView?.frameElement || null;
+        if (!current?.doc?.documentElement || !frame) return null;
+
+        try {
+            const bookRect = this.book.getBoundingClientRect();
+            const frameRect = frame.getBoundingClientRect();
+            const clone = document.createElement('div');
+            clone.className = Array.from(this.book.classList)
+                .filter(name => name !== 'tts-highlight')
+                .join(' ');
+            clone.classList.add('reader-magnifier-source', 'reader-magnifier-epub-page');
+            clone.setAttribute('aria-hidden', 'true');
+            clone.style.width = Math.max(1, this.book.clientWidth || this.book.offsetWidth) + 'px';
+            clone.style.height = Math.max(1, this.book.clientHeight || this.book.offsetHeight) + 'px';
+            clone.style.position = 'relative';
+            clone.style.overflow = 'hidden';
+
+            const frameClone = frame.cloneNode(false);
+            frameClone.removeAttribute('src');
+            frameClone.style.cssText = frame.style.cssText;
+            frameClone.style.position = 'absolute';
+            frameClone.style.left = (frameRect.left - bookRect.left) + 'px';
+            frameClone.style.top = (frameRect.top - bookRect.top) + 'px';
+            frameClone.style.width = frameRect.width + 'px';
+            frameClone.style.height = frameRect.height + 'px';
+            frameClone.style.maxWidth = 'none';
+            frameClone.style.border = '0';
+
+            const docClone = current.doc.documentElement.cloneNode(true);
+            docClone.querySelectorAll('script').forEach(el => el.remove());
+            this.prepareFrameCloneDocument(current.doc, docClone);
+            frameClone.srcdoc = '<!doctype html>\n' + docClone.outerHTML;
+            frameClone.addEventListener('load', () => {
+                this.restoreFrameScrollState(frameClone, this.getFrameScrollState(frame, current.doc));
+                this.repositionLastPointer();
+            }, { once: true });
+            clone.appendChild(frameClone);
             return clone;
         } catch {
             return null;

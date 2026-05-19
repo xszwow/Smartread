@@ -1357,6 +1357,12 @@
         grid-column: span 2;
     }
 
+    #bookshelf-view.is-mobile-dashboard .mobile-metro-tile.is-square {
+        aspect-ratio: 1 / 1;
+        grid-column: span 1;
+        grid-row: span 1;
+    }
+
     #bookshelf-view.is-mobile-dashboard .mobile-metro-tile.is-small {
         grid-column: span 1;
         padding: 9px;
@@ -1387,6 +1393,18 @@
         font-size: 1.42rem;
         line-height: 1.08;
         white-space: normal;
+    }
+
+    #bookshelf-view.is-mobile-dashboard .mobile-metro-tile.is-square strong {
+        font-size: clamp(1.26rem, 7vw, 1.8rem);
+        line-height: 1.1;
+        white-space: normal;
+    }
+
+    #bookshelf-view.is-mobile-dashboard .mobile-metro-tile.is-wide strong {
+        font-size: 1rem;
+        line-height: 1.12;
+        white-space: nowrap;
     }
 
     #bookshelf-view.is-mobile-dashboard .mobile-metro-tile small,

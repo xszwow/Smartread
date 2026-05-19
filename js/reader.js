@@ -141,6 +141,11 @@ const Reader = {
                 data = await data.arrayBuffer();
             }
 
+            const zipLib = typeof JSZip !== 'undefined'
+                ? JSZip
+                : await window.SmartReadVendor?.ensureJSZip?.();
+            if (!zipLib) throw new Error('EPUB 依赖 JSZip 未加载，请稍后重试');
+
             const epubFactory = typeof ePub !== 'undefined'
                 ? ePub
                 : await window.SmartReadVendor?.ensureEpub?.();
@@ -170,7 +175,6 @@ const Reader = {
                 style.textContent = `
                 html, body {
                     background: transparent !important;
-                    color: #1d1d1f !important;
                     margin: 0 !important;
                     overflow-wrap: break-word !important;
                 }
@@ -237,6 +241,7 @@ const Reader = {
                 }
             `;
                 doc.head.appendChild(style);
+                Reader.applyThemeToEpubDocument(doc);
                 if (Reader.epubFontSizeOverride) {
                     doc.body.style.setProperty('font-size', Reader.fontSize + 'px', 'important');
                 }
@@ -694,10 +699,104 @@ const Reader = {
             this._tocCache = items;
             return items;
         }
+        if (this.book?.type === 'pdf' && this.pdfDoc) {
+            if (this._tocCache) return this._tocCache;
+            const outline = await this.pdfDoc.getOutline?.();
+            if (!outline?.length) return [];
+            const items = [];
+            const flatten = async (list, depth) => {
+                for (const entry of list) {
+                    const pageIndex = await this.pdfOutlinePageIndex(entry);
+                    if (pageIndex != null) {
+                        items.push({
+                            label: (entry.title || `第 ${pageIndex + 1} 页`).trim(),
+                            href: `pdf:${pageIndex}`,
+                            depth
+                        });
+                    }
+                    if (entry.items?.length) await flatten(entry.items, depth + 1);
+                }
+            };
+            await flatten(outline, 0);
+            this._tocCache = items;
+            return items;
+        }
         return [];
     },
 
+    currentThemePalette() {
+        if (document.body?.classList.contains('theme-dark')) {
+            return {
+                bg: '#1c1c1e',
+                text: '#f5f5f7',
+                mediaFilter: 'invert(1) hue-rotate(180deg) contrast(0.92) brightness(0.88)'
+            };
+        }
+        if (document.body?.classList.contains('theme-sepia')) {
+            return {
+                bg: '#f3e0b4',
+                text: '#372713',
+                mediaFilter: 'sepia(0.62) saturate(0.72) brightness(0.96) contrast(0.96)'
+            };
+        }
+        return {
+            bg: '#ffffff',
+            text: '#1d1d1f',
+            mediaFilter: 'none'
+        };
+    },
+
+    applyThemeToEpubDocument(doc) {
+        if (!doc?.documentElement || !doc.body) return;
+        const theme = this.currentThemePalette();
+        doc.documentElement.style.setProperty('background', theme.bg, 'important');
+        doc.documentElement.style.setProperty('color', theme.text, 'important');
+        doc.body.style.setProperty('background', theme.bg, 'important');
+        doc.body.style.setProperty('color', theme.text, 'important');
+        doc.querySelectorAll('p, li, dd, dt, blockquote, figcaption, section, article, aside, header, footer, h1, h2, h3, h4, h5, h6, span, div')
+            .forEach(el => el.style.setProperty('color', theme.text, 'important'));
+        doc.querySelectorAll('img, svg, video, canvas, object, embed, image')
+            .forEach(el => el.style.setProperty('filter', theme.mediaFilter, 'important'));
+    },
+
+    applyThemeToEmbeddedContent() {
+        if (this.book?.type !== 'epub' || !this.epubRendition) return;
+        try {
+            const contents = this.epubRendition.getContents?.() || [];
+            contents.forEach(content => this.applyThemeToEpubDocument(content.document));
+        } catch (err) {
+            console.warn('EPUB theme sync failed:', err);
+        }
+    },
+
+    async pdfOutlinePageIndex(entry) {
+        if (!this.pdfDoc || !entry?.dest) return null;
+        try {
+            const dest = typeof entry.dest === 'string'
+                ? await this.pdfDoc.getDestination(entry.dest)
+                : entry.dest;
+            const pageRef = dest?.[0];
+            if (!pageRef) return null;
+            const index = await this.pdfDoc.getPageIndex(pageRef);
+            return Number.isFinite(index) ? index : null;
+        } catch (err) {
+            console.warn('PDF outline destination failed:', err);
+            return null;
+        }
+    },
+
     display(target) {
+        if (this.book?.type === 'pdf' && this.pdfDoc && typeof target === 'string' && target.startsWith('pdf:')) {
+            const pageIndex = Number.parseInt(target.slice(4), 10);
+            if (!Number.isFinite(pageIndex)) return;
+            const total = this.pdfDoc.numPages || this.book.totalPages || 1;
+            this.currentPage = Math.max(0, Math.min(pageIndex, total - 1));
+            this.renderPdfPage()
+                .then(() => this.saveProgress())
+                .then(() => this.notifyReadingPositionChanged())
+                .catch(err => console.warn('PDF display failed:', err));
+            return;
+        }
         if (this.book?.type === 'epub' && this.epubRendition) {
             // 只停止朗读书本内容的 TTS
             if (TTS.source !== 'ai' && TTS.source !== 'chat') {
@@ -1068,7 +1167,10 @@ const Reader = {
         // EPUB: 只提取当前可视页面的文字（而非整个章节）
         if (this.book?.type === 'epub' && this.epubRendition) {
             try {
-                const contents = this.epubRendition.getContents() || [];
+                const current = this.getCurrentEpubContent();
+                const contents = current
+                    ? [current.content]
+                    : (this.epubRendition.getContents() || []);
                 const visibleTexts = [];
                 const rangeTexts = [];
                 let hasCurrentPageMedia = false;
@@ -1091,6 +1193,83 @@ const Reader = {
         // 降级：从容器取
         const el = document.getElementById('book-content');
         return el?.innerText || '';
+    },
+
+    getCurrentEpubContent() {
+        if (this.book?.type !== 'epub' || !this.epubRendition) return null;
+        let contents = [];
+        try {
+            contents = this.epubRendition.getContents?.() || [];
+        } catch {
+            return null;
+        }
+        const candidates = contents
+            .map(content => {
+                const doc = content?.document;
+                const body = doc?.body;
+                if (!doc || !body) return null;
+                const range = this._getCurrentEpubRange(content, doc);
+                return {
+                    content,
+                    doc,
+                    body,
+                    href: this._getEpubContentHref(content, doc),
+                    range,
+                    area: this._epubContentFrameIntersectionArea(doc)
+                };
+            })
+            .filter(Boolean);
+        if (!candidates.length) return null;
+        const currentHref = this._normalizeEpubHref(
+            this.epubRendition.location?.start?.href ||
+            this.epubRendition.location?.start?.url ||
+            ''
+        );
+        const hrefMatches = currentHref
+            ? candidates.filter(item => this._epubHrefMatches(item.href, currentHref))
+            : [];
+        const pool = hrefMatches.length ? hrefMatches : candidates;
+        return pool.find(item => item.range && item.area > 0) ||
+            pool.find(item => item.area > 0) ||
+            pool.find(item => item.range) ||
+            pool.sort((a, b) => b.area - a.area)[0] ||
+            pool[0];
+    },
+
+    _getEpubContentHref(content, doc) {
+        const raw =
+            content?.section?.href ||
+            content?.section?.url ||
+            content?.href ||
+            content?.url ||
+            doc?.location?.pathname ||
+            doc?.URL ||
+            '';
+        return this._normalizeEpubHref(raw);
+    },
+
+    _epubHrefMatches(contentHref, currentHref) {
+        const content = this._normalizeEpubHref(contentHref);
+        const current = this._normalizeEpubHref(currentHref);
+        if (!content || !current) return false;
+        return content === current ||
+            content.endsWith('/' + current) ||
+            current.endsWith('/' + content);
+    },
+
+    _epubContentFrameIntersectionArea(doc) {
+        try {
+            const frame = doc?.defaultView?.frameElement;
+            const book = document.getElementById('book-content');
+            if (!frame || !book) return 0;
+            const frameRect = frame.getBoundingClientRect();
+            const bookRect = book.getBoundingClientRect();
+            const width = Math.max(0, Math.min(frameRect.right, bookRect.right) - Math.max(frameRect.left, bookRect.left));
+            const height = Math.max(0, Math.min(frameRect.bottom, bookRect.bottom) - Math.max(frameRect.top, bookRect.top));
+            return width * height;
+        } catch {
+            return 0;
+        }
     },
 
     async getCurrentReadingContext(pageText = null) {
@@ -1404,7 +1583,8 @@ const Reader = {
         if (this.book?.type === 'epub' && this.epubRendition) {
             await this.waitForCurrentPageReady(1000);
             try {
-                const contents = this.epubRendition.getContents() || [];
+                const current = this.getCurrentEpubContent();
+                const contents = current ? [current.content] : (this.epubRendition.getContents() || []);
                 const candidates = [];
                 for (const content of contents) {
                     const doc = content?.document;
