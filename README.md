@@ -162,3 +162,6 @@ npm run desktop:smoke:installed
 - 验证报告：`docs/verification-report.md`
 - 发布状态：`docs/release-readiness-current.md`
 - 功能覆盖矩阵：`docs/functional-test-matrix.md`
+
+## 友情链接
+linux.do
