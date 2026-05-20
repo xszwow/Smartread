@@ -30,7 +30,7 @@ SmartRead 是一个本地优先的 AI 阅读器，适合在手机上导入 EPUB�
 
 到 GitHub Release 下载 APK：
 
-[SmartRead-android-debug.apk](https://github.com/xszwow/Smartread/releases/latest/download/SmartRead-android-debug.apk)
+[smartread.apk](https://github.com/xszwow/Smartread/releases/latest/download/smartread.apk)
 
 手机安装：
 
@@ -42,10 +42,10 @@ SmartRead 是一个本地优先的 AI 阅读器，适合在手机上导入 EPUB�
 ADB 覆盖安装：
 
 ```powershell
-adb install -r SmartRead-android-debug.apk
+adb install -r smartread.apk
 ```
 
-当前 GitHub Release 提供的是 debug signed APK，适合自用、测试和真机验证，不是 Play Store 生产签名包。
+当前 GitHub Release 提供的是 Android 安装包，适合自用、测试和真机验证，不是 Play Store 生产签名包。
 
 ### Windows
 
@@ -82,7 +82,7 @@ Android 端默认行为：
 
 ## 从源码构建 APK
 
-Debug APK：
+本地测试 APK：
 
 ```powershell
 npm run android:build:debug
@@ -137,7 +137,7 @@ npm run desktop:smoke:installed
 - APK 能用 `adb install -r` 覆盖安装。
 - 真机能打开书架、导入书、进入正文页。
 - AI、听书、字幕、放大镜和底部控件在手机端不遮挡正文。
-- GitHub Release 的 Assets 里包含 `SmartRead-android-debug.apk`。
+- GitHub Release 的 Assets 里包含 `smartread.apk`。
 
 ## 当前仓库状态
 
