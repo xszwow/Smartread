@@ -40,12 +40,6 @@ SmartRead 是一个本地优先的 AI 阅读器，适合在手机上导入 EPUB�
 3. 如果系统提示禁止安装未知来源应用，给浏览器或文件管理器开启“安装未知应用”权限。
 4. 安装完成后打开 SmartRead。
 
-ADB 覆盖安装：
-
-```powershell
-adb install -r smartread.apk
-```
-
 当前 GitHub Release 提供的是 Android 安装包，适合自用、测试和真机验证，不是 Play Store 生产签名包。
 
 ### Windows
