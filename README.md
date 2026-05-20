@@ -1,6 +1,28 @@
 # SmartRead
 
-SmartRead 是一个本地优先的阅读应用，支持 Windows 桌面版和 Android 安装包。当前重点是手机端阅读体验：本地书架、EPUB/PDF/TXT 导入、AI 解读、听书、字幕、放大镜和移动端底部控件适配。
+SmartRead 是一个本地优先的 AI 阅读器，适合在手机上导入 EPUB、PDF、TXT 后阅读、听书、做 AI 逐页解读和管理个人书库。它的重点不是账号系统或云同步，而是把正文阅读、AI 解读、听书字幕、漫画和复杂图文混排内容做成可离线、自用、可控的单机体验。
+
+## 应用功能特色
+
+- 本地书架：导入的书籍和阅读进度保存在本机或手机本地，默认不依赖远程服务器。
+- 多格式阅读：支持 EPUB、PDF、TXT，本地导入后可直接进入正文页阅读。
+- 漫画和复杂图文：支持漫画书、扫描版 PDF 和复杂图文混排书籍的阅读场景。
+- AI 逐页解读：可接入 OpenAI-compatible API，用自己的 API Base URL 和 Key 对当前页、章节或选中文本生成解读。
+- AI 聊天：阅读时可以围绕当前内容提问，适合查词、总结、解释段落和辅助理解。
+- 听书模式：支持正文朗读、当前句高亮、上一句、下一句和停止朗读。
+- 字幕模式：支持字幕大、字幕小、字幕关闭，适合边听边看。
+- 移动端阅读控件：底部功能栏固定在屏幕底部，不跟随正文滑动，不覆盖可阅读区域。
+- 放大镜：正文页可双击开启或关闭放大镜，适合 PDF、扫描内容或小字号文本。
+- 护眼和深色显示：阅读和听书控件会跟随主题，减少夜间阅读割裂感。
+- Android 单机模式：APK 默认在手机本地运行，书架、AI 配置、在线书源配置和阅读状态都走本地存储。
+- 内嵌找书入口：可搜索全球大量图书资源，覆盖小说、技术书、漫画书和图文混排书籍，实际可用性取决于外部书源状态。
+
+## 适合谁用
+
+- 想在 Android 手机上看 EPUB、PDF、TXT 的用户。
+- 想把 AI 逐页解读和听书放进同一个阅读界面的用户。
+- 不想依赖云端账号，也不想把私人书库交给第三方服务的用户。
+- 需要自己配置 API Key、自己控制数据和模型入口的用户。
 
 ## 下载安装
 
@@ -23,20 +45,7 @@ ADB 覆盖安装：
 adb install -r SmartRead-android-debug.apk
 ```
 
-如果是从源码本地构建，APK 输出在：
-
-```text
-android/app/build/outputs/apk/debug/app-debug.apk
-```
-
-本地构建并安装：
-
-```powershell
-npm run android:build:debug
-adb install -r .\android\app\build\outputs\apk\debug\app-debug.apk
-```
-
-说明：当前 GitHub Release 提供的是 debug signed APK，适合自用、测试和真机验证，不是 Play Store 生产签名包。
+当前 GitHub Release 提供的是 debug signed APK，适合自用、测试和真机验证，不是 Play Store 生产签名包。
 
 ### Windows
 
@@ -54,17 +63,6 @@ adb install -r .\android\app\build\outputs\apk\debug\app-debug.apk
 
 Windows 公开分发需要正式代码签名证书，否则 SmartScreen 可能拦截。
 
-## 主要功能
-
-- 本地书架：书籍和进度默认保存在本机或手机本地。
-- 文件导入：支持 EPUB、PDF、TXT。
-- Android 单机模式：APK 默认不依赖外部 SmartRead 服务器。
-- AI 解读：可配置 OpenAI-compatible API 地址和 Key。
-- 听书与字幕：支持听书、当前句高亮、字幕大、字幕小、字幕关闭。
-- 移动端阅读控件：底部功能栏固定，不跟随正文滑动。
-- 放大镜：双击开启或关闭，滚动前后交互保持一致。
-- Z-Library：可在配置后使用在线找书能力，实际可用性取决于外部服务状态。
-
 ## Android 使用说明
 
 首次使用建议流程：
@@ -72,19 +70,48 @@ Windows 公开分发需要正式代码签名证书，否则 SmartScreen 可能�
 1. 安装 APK。
 2. 打开应用进入书架。
 3. 用“导入”添加 EPUB、PDF 或 TXT。
-4. 进入正文页后，可使用底部工具栏切换 AI、听书、字幕和放大镜。
-5. 如需 AI 功能，在设置中填入自己的 API Base URL 和 API Key。
+4. 进入正文页后，使用底部工具栏切换 AI、听书、字幕和放大镜。
+5. 如需 AI 功能，在设置里填入自己的 API Base URL 和 API Key。
 
-Android 端默认是单机模式：
+Android 端默认行为：
 
-- 不要求登录远程服务器。
-- 书架、阅读进度、AI 配置保存在设备本地。
+- 不要求登录远程 SmartRead 服务器。
+- 书架、阅读进度和 AI 配置保存在设备本地。
 - 听书优先使用 Android 原生 TextToSpeech。
 - 语音输入优先使用 Android 系统语音识别，需要录音权限。
 
+## 从源码构建 APK
+
+Debug APK：
+
+```powershell
+npm run android:build:debug
+```
+
+输出路径：
+
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+构建后安装：
+
+```powershell
+adb install -r .\android\app\build\outputs\apk\debug\app-debug.apk
+```
+
+Android release 构建入口已保留：
+
+```powershell
+npm run android:build:release
+npm run android:build:bundle
+```
+
+生产 release 需要配置正式 Android keystore。不要把 keystore、密码、API Key 或生产证书提交到仓库。
+
 ## 开发命令
 
-常用命令：
+常用检查：
 
 ```powershell
 npm test
@@ -100,15 +127,6 @@ npm run desktop:pack:win:dev-signed
 npm run desktop:smoke:packaged
 npm run desktop:smoke:installed
 ```
-
-Android release 构建入口已保留：
-
-```powershell
-npm run android:build:release
-npm run android:build:bundle
-```
-
-生产 release 需要配置正式 Android keystore。不要把 keystore、密码、API Key 或生产证书提交到仓库。
 
 ## 发布检查
 
