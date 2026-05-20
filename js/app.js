@@ -341,6 +341,7 @@ const App = {
         const panel = document.getElementById('right-panel');
         const btn = document.getElementById('btn-toggle-chat');
         const willOpen = panel.classList.contains('collapsed');
+        const wasCollapsed = panel.classList.contains('collapsed');
         this.closeMobileMore();
         panel.classList.toggle('collapsed');
         btn.classList.toggle('active');
@@ -350,20 +351,25 @@ const App = {
             this.closeMobileMenu();
         }
         this.updateMobileToolbarState();
-        this.syncReaderLayout();
+        if (wasCollapsed !== panel.classList.contains('collapsed') && this.isRightPanelLayoutAffecting()) {
+            this.syncReaderLayout();
+        }
     },
 
     closeRightPanel() {
         const panel = document.getElementById('right-panel');
         const btn = document.getElementById('btn-toggle-chat');
         const hadFocus = panel?.contains(document.activeElement);
+        const wasCollapsed = panel?.classList.contains('collapsed') ?? true;
         panel?.classList.add('collapsed');
         btn?.classList.remove('active');
         this.setMobileDrawerExpanded(false);
         this.syncRightPanelAccessibility();
         if (hadFocus) btn?.focus({ preventScroll: true });
         this.updateMobileToolbarState();
-        this.syncReaderLayout();
+        if (!wasCollapsed && this.isRightPanelLayoutAffecting()) {
+            this.syncReaderLayout();
+        }
     },
 
     openRightPanel(tab = null) {
@@ -371,11 +377,18 @@ const App = {
         const btn = document.getElementById('btn-toggle-chat');
         if (!panel) return;
         if (tab) this.switchTab(tab);
+        const wasCollapsed = panel.classList.contains('collapsed');
         panel.classList.remove('collapsed');
         btn?.classList.add('active');
         this.syncRightPanelAccessibility();
         this.updateMobileToolbarState();
-        this.syncReaderLayout();
+        if (wasCollapsed && this.isRightPanelLayoutAffecting()) {
+            this.syncReaderLayout();
+        }
+    },
+
+    isRightPanelLayoutAffecting() {
+        return !this.isSmallScreen();
     },
 
     syncDefaultReaderPanels() {
@@ -463,12 +476,9 @@ const App = {
 
         const nextTop = topInset + 'px';
         const nextBottom = bottomInset + 'px';
-        const changed =
-            view.style.getPropertyValue('--reader-top-inset') !== nextTop ||
-            view.style.getPropertyValue('--reader-bottom-inset') !== nextBottom;
         view.style.setProperty('--reader-top-inset', nextTop);
         view.style.setProperty('--reader-bottom-inset', nextBottom);
-        if (changed) this.syncReaderLayout();
+        // 移动端工具层是悬浮层，不能反向驱动 EPUB/PDF 重新分页。
     },
 
     isMobileReaderImagePage() {
@@ -652,7 +662,7 @@ const App = {
         document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('btn-toc')?.classList.add('active');
         this.updateMobileToolbarState();
-        this.syncReaderLayout();
+        if (!this.isSmallScreen()) this.syncReaderLayout();
     },
 
     closeLeftSidebar() {
@@ -665,7 +675,7 @@ const App = {
         if (this.mobileActiveTool === 'toc') this.mobileActiveTool = null;
         if (hadFocus) btn?.focus({ preventScroll: true });
         this.updateMobileToolbarState();
-        this.syncReaderLayout();
+        if (!this.isSmallScreen()) this.syncReaderLayout();
     },
 
     switchTab(tab) {
@@ -712,7 +722,6 @@ const App = {
         btn?.classList.add('active');
         this.syncRightPanelAccessibility();
         this.updateMobileToolbarState();
-        this.syncReaderLayout();
     },
 
     setMobileDrawerExpanded(expanded) {
@@ -722,7 +731,6 @@ const App = {
         const handle = document.getElementById('mobile-drawer-handle');
         handle?.setAttribute('aria-expanded', String(next));
         handle?.setAttribute('aria-label', next ? '收起 AI 抽屉' : '展开 AI 抽屉');
-        this.syncReaderLayout();
     },
 
     toggleMobileDrawerExpanded() {
@@ -782,8 +790,10 @@ const App = {
     },
 
     toggleMagnifierFromMobile() {
-        Magnifier.toggle();
         this.closeMobileMore();
+        this.closeAllPanels({ restoreFocus: false });
+        Magnifier.toggle();
+        this.updateMobileToolbarState();
     },
 
     updateMobileToolbarState() {
@@ -806,12 +816,13 @@ const App = {
         displayBtn?.classList.toggle('is-active', displayActive);
         aiBtn?.classList.toggle('is-active', aiActive);
         ttsBtn?.classList.toggle('is-active', bookTTSActive);
-        moreBtn?.classList.toggle('is-active', this.mobileMoreOpen);
+        const magnifierActive = typeof Magnifier !== 'undefined' && Magnifier.enabled;
+        moreBtn?.classList.toggle('is-active', this.mobileMoreOpen || magnifierActive);
         tocBtn?.setAttribute('aria-pressed', String(tocActive));
         displayBtn?.setAttribute('aria-pressed', String(displayActive));
         aiBtn?.setAttribute('aria-pressed', String(aiActive));
         ttsBtn?.setAttribute('aria-pressed', String(bookTTSActive));
-        moreBtn?.setAttribute('aria-pressed', String(this.mobileMoreOpen));
+        moreBtn?.setAttribute('aria-pressed', String(this.mobileMoreOpen || magnifierActive));
     },
 
     updateMobileReaderMeta() {

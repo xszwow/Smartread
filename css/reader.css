@@ -251,7 +251,7 @@
     display: none;
     position: absolute;
     inset: 0;
-    z-index: 20;
+    z-index: 90;
     cursor: none;
     touch-action: none;
 }
@@ -263,33 +263,18 @@
     top: 50%;
     width: var(--magnifier-width, 260px);
     height: var(--magnifier-height, 260px);
-    z-index: 21;
+    z-index: 91;
     overflow: hidden;
     border: none;
-    border-radius: 30px;
-    background: rgba(255, 255, 255, 0.58);
+    border-radius: 24px;
+    background: var(--reader-page-bg);
     box-shadow:
         0 26px 72px rgba(0, 0, 0, 0.22),
-        0 10px 28px rgba(0, 122, 255, 0.08),
-        0 0 0 1px rgba(255, 255, 255, 0.34) inset,
-        0 0 34px rgba(255, 255, 255, 0.44) inset;
+        0 0 0 1px rgba(0, 122, 255, 0.24),
+        0 0 0 9999px rgba(0, 0, 0, 0.02);
     pointer-events: none;
     transform: translate(-50%, -50%);
-    backdrop-filter: blur(10px) saturate(145%);
-    -webkit-backdrop-filter: blur(10px) saturate(145%);
-}
-
-.reader-magnifier-lens::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    border-radius: inherit;
-    background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.3), transparent 28%),
-        radial-gradient(circle at 100% 0, rgba(0, 122, 255, 0.14), transparent 32%),
-        radial-gradient(circle, transparent 64%, rgba(29, 29, 31, 0.12) 100%);
-    pointer-events: none;
+    contain: layout paint;
 }
 
 .reader-magnifier-lens::after {
@@ -309,12 +294,10 @@
 }
 
 .theme-dark .reader-magnifier-lens {
-    background: rgba(34, 34, 38, 0.62);
+    background: var(--reader-page-bg);
     box-shadow:
         0 26px 78px rgba(0, 0, 0, 0.46),
-        0 10px 28px rgba(0, 122, 255, 0.14),
-        0 0 0 1px rgba(255, 255, 255, 0.16) inset,
-        0 0 34px rgba(255, 255, 255, 0.08) inset;
+        0 0 0 1px rgba(0, 122, 255, 0.34);
 }
 
 .reader-magnifier-source {
@@ -323,7 +306,8 @@
     top: 0;
     flex: none !important;
     margin: 0 !important;
-    overflow: hidden;
+    max-width: none !important;
+    overflow: visible !important;
     pointer-events: none;
     transform-origin: 0 0;
     user-select: none;
@@ -334,59 +318,12 @@
     pointer-events: none !important;
 }
 
-.reader-magnifier-source.book-epub,
-.reader-magnifier-source.book-pdf {
-    padding: 0;
-    white-space: normal;
-    word-wrap: normal;
-}
-
-.reader-magnifier-source.book-txt {
-    overflow: hidden;
-}
-
-.reader-magnifier-source.book-epub {
-    display: block;
-    overflow: hidden;
-    font-family: var(--font-read);
-}
-
-.reader-magnifier-source.book-epub>.epub-container {
-    width: 100% !important;
-    height: 100% !important;
-    max-width: 100%;
-    overflow: hidden !important;
-}
-
-.reader-magnifier-source.book-epub .epub-view {
-    max-width: none;
-}
-
-.reader-magnifier-source.book-epub iframe {
-    max-width: none;
-    border: 0;
-    display: block;
-}
-
-.reader-magnifier-image-page {
-    background: transparent;
-}
-
-.reader-magnifier-image-page img {
-    position: absolute;
-    display: block;
-    max-width: none !important;
-    height: auto;
-    margin: 0 !important;
-    object-fit: fill;
-}
-
 .reader-magnifier-hint {
     display: none;
     position: absolute;
     left: 50%;
     bottom: 16px;
-    z-index: 22;
+    z-index: 92;
     max-width: calc(100% - 32px);
     padding: 8px 12px;
     border: 1px solid var(--border);
@@ -477,6 +414,13 @@
 }
 
 /* 浮动翻页按钮 */
+.reader-page-controls {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+
 .float-nav-btn {
     position: absolute;
     top: 50%;
@@ -493,7 +437,7 @@
     color: var(--text-muted);
     opacity: 0;
     transition: all 0.2s;
-    z-index: 5;
+    pointer-events: auto;
     transform: translateY(-50%);
 }
 
@@ -731,6 +675,27 @@
         --mobile-player-height: 58px;
         --mobile-player-bottom: calc(var(--mobile-toolbar-bottom) + var(--mobile-toolbar-height) + var(--mobile-player-toolbar-gap));
         --mobile-subtitle-bottom: calc(var(--mobile-player-bottom) + var(--mobile-player-height) + var(--mobile-subtitle-player-gap));
+        --mobile-player-surface: rgba(255, 255, 255, 0.9);
+        --mobile-player-border: rgba(0, 0, 0, 0.06);
+        --mobile-player-shadow: rgba(0, 0, 0, 0.16);
+        --mobile-player-quiet-bg: rgba(0, 0, 0, 0.04);
+        --mobile-player-quiet-border: rgba(0, 0, 0, 0.05);
+    }
+
+    .theme-dark #reader-view.active {
+        --mobile-player-surface: rgba(44, 44, 46, 0.94);
+        --mobile-player-border: rgba(255, 255, 255, 0.12);
+        --mobile-player-shadow: rgba(0, 0, 0, 0.36);
+        --mobile-player-quiet-bg: rgba(255, 255, 255, 0.08);
+        --mobile-player-quiet-border: rgba(255, 255, 255, 0.12);
+    }
+
+    .theme-sepia #reader-view.active {
+        --mobile-player-surface: rgba(244, 229, 195, 0.96);
+        --mobile-player-border: rgba(91, 70, 54, 0.2);
+        --mobile-player-shadow: rgba(91, 70, 54, 0.2);
+        --mobile-player-quiet-bg: rgba(91, 70, 54, 0.08);
+        --mobile-player-quiet-border: rgba(91, 70, 54, 0.16);
     }
 
     #reader-view.active .mobile-reader-back-only:not(.hidden) {
@@ -842,9 +807,28 @@
         text-align: right;
     }
 
-    .reader-body {
-        padding-top: var(--reader-top-inset);
-        padding-bottom: var(--reader-bottom-inset);
+    #book-content.book-txt {
+        padding-bottom: max(24px, var(--reader-bottom-inset));
+        scroll-padding-bottom: max(24px, var(--reader-bottom-inset));
+    }
+
+    .reader-body.reader-stable-pan {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .reader-body.reader-stable-pan #book-content.book-epub,
+    .reader-body.reader-stable-pan #book-content.book-pdf {
+        flex: 0 0 100%;
+        height: 100%;
+    }
+
+    .reader-body.reader-stable-pan::after {
+        content: '';
+        display: block;
+        flex: 0 0 var(--reader-bottom-inset);
+        min-height: var(--reader-bottom-inset);
     }
 
     .mobile-menu-toggle {
@@ -1033,10 +1017,10 @@
         justify-content: center;
         gap: 12px;
         z-index: 90;
-        border: 1px solid rgba(0, 0, 0, 0.06);
+        border: 1px solid var(--mobile-player-border);
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.9);
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.16);
+        background: var(--mobile-player-surface);
+        box-shadow: 0 12px 36px var(--mobile-player-shadow);
         backdrop-filter: blur(20px) saturate(160%);
         -webkit-backdrop-filter: blur(20px) saturate(160%);
     }
@@ -1255,9 +1239,9 @@
         min-width: 56px;
         height: 44px;
         padding: 0 10px;
-        border: 1px solid rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--mobile-player-quiet-border);
         border-radius: 999px;
-        background: rgba(0, 0, 0, 0.04);
+        background: var(--mobile-player-quiet-bg);
         color: var(--text-secondary);
         font-size: 0.74rem;
         font-weight: 700;

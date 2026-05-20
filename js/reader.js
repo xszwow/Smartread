@@ -103,6 +103,8 @@ const Reader = {
         if (!container) return;
         container.classList.remove('book-txt', 'book-epub', 'book-pdf');
         container.classList.add(`book-${type || 'txt'}`);
+        document.getElementById('reader-content')
+            ?.classList.toggle('reader-stable-pan', type === 'epub' || type === 'pdf');
     },
 
     nextFrame() {
