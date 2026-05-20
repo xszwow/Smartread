@@ -18,6 +18,21 @@ SmartRead 是一个本地优先的 AI 阅读器，适合在手机上导入 EPUB�
 - Android 单机模式：APK 默认在手机本地运行，书架、AI 配置、在线书源配置和阅读状态都走本地存储。
 - 内嵌找书入口：可搜索全球大量图书资源，覆盖小说、技术书、漫画书和图文混排书籍，实际可用性取决于外部书源状态。
 
+## 界面截图
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/smartread-home.png" width="220" alt="SmartRead 阅读主页"><br>阅读主页</td>
+    <td align="center"><img src="docs/screenshots/smartread-search.png" width="220" alt="SmartRead 搜书下载"><br>搜书下载</td>
+    <td align="center"><img src="docs/screenshots/smartread-library.png" width="220" alt="SmartRead 我的书架"><br>我的书架</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/smartread-reader.png" width="220" alt="SmartRead 正文阅读"><br>正文阅读</td>
+    <td align="center"><img src="docs/screenshots/smartread-tts.png" width="220" alt="SmartRead 听书模式"><br>听书模式</td>
+    <td align="center"></td>
+  </tr>
+</table>
+
 ## 适合谁用
 
 - 想在 Android 手机上看 EPUB、PDF、TXT 的用户。
