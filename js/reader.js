@@ -830,67 +830,77 @@ const Reader = {
     },
 
     nextPage() {
-        this.navigatePage(1);
+        return this.navigatePage(1);
     },
 
     prevPage() {
-        this.navigatePage(-1);
+        return this.navigatePage(-1);
     },
 
     async navigatePage(delta) {
-        if (!this.book || !delta) return;
+        if (!this.book || !delta) return false;
         this.stopPlaybackForNavigation();
 
         if (this.book.type === 'epub' && this.epubRendition) {
-            await this.navigateEpub(delta);
-            return;
+            return await this.navigateEpub(delta);
         }
 
         if (this.book.type === 'pdf' && this.pdfDoc) {
-            await this.navigatePdf(delta);
-            return;
+            return await this.navigatePdf(delta);
         }
 
         if (this.book.type === 'txt') {
-            this.navigateTxt(delta);
+            return this.navigateTxt(delta);
         }
+        return false;
     },
 
     navigateTxt(delta) {
         const next = this.currentPage + delta;
-        if (next < 0 || next >= this.pages.length) return;
+        if (next < 0 || next >= this.pages.length) return false;
         this.currentPage = next;
         this.renderPage();
         this.saveProgress();
         this.notifyReadingPositionChanged();
+        return true;
     },
 
     async navigatePdf(delta) {
         const total = this.pdfDoc?.numPages || this.book?.totalPages || 1;
         const next = this.currentPage + delta;
-        if (next < 0 || next >= total) return;
+        if (next < 0 || next >= total) return false;
         this.currentPage = next;
         await this.renderPdfPage();
         await this.saveProgress();
         this.notifyReadingPositionChanged();
+        return true;
     },
 
     async navigateEpub(delta) {
         if (this.isNavigating) {
             this.pendingNavDelta = Math.max(-1, Math.min(1, this.pendingNavDelta + delta));
-            return;
+            return false;
         }
 
         this.isNavigating = true;
+        const beforeLocation = this.getEpubLocationKey();
         try {
             if (delta > 0) {
                 await this.epubRendition.next();
             } else {
                 await this.epubRendition.prev();
             }
-            this.notifyReadingPositionChanged();
+            await this.nextFrame();
+            await this.nextFrame();
+            const afterLocation = this.getEpubLocationKey();
+            const changed = beforeLocation && afterLocation
+                ? beforeLocation !== afterLocation
+                : Boolean(beforeLocation || afterLocation);
+            if (changed) this.notifyReadingPositionChanged();
+            return changed;
         } catch (err) {
             console.warn('EPUB navigation failed:', err);
+            return false;
         } finally {
             setTimeout(() => {
                 this.isNavigating = false;
@@ -899,6 +909,19 @@ const Reader = {
                 if (pending) this.navigateEpub(pending);
             }, 60);
         }
+    },
+
+    getEpubLocationKey() {
+        const start = this.epubRendition?.location?.start;
+        const end = this.epubRendition?.location?.end;
+        return [
+            start?.cfi,
+            end?.cfi,
+            start?.href,
+            end?.href,
+            start?.index,
+            end?.index
+        ].filter(value => value !== undefined && value !== null && value !== '').join('|');
     },
 
     stopPlaybackForNavigation() {

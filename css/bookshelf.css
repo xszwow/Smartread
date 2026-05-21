@@ -540,8 +540,21 @@
 .cloud-section {
     display: grid;
     gap: 14px;
+    grid-template-columns: minmax(0, 1fr);
     margin-top: 0;
     margin-bottom: 30px;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.cloud-section > *,
+.cloud-body,
+.cloud-search-panel,
+.online-results,
+.online-result,
+.online-info {
+    min-width: 0;
+    max-width: 100%;
 }
 
 #bookshelf-view.is-authenticated .cloud-section {
@@ -568,6 +581,45 @@
 
 .desktop-ai-api-card .cloud-panel-head {
     margin-bottom: 12px;
+}
+
+.desktop-settings-card {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(178,13,35,0.08), transparent 32%),
+        linear-gradient(145deg, rgba(var(--bg-surface-rgb),0.96), rgba(var(--bg-primary-rgb),0.72));
+}
+
+.desktop-settings-grid {
+    display: grid;
+    gap: 14px;
+    grid-template-areas:
+        "account api"
+        "source source";
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.desktop-settings-card .cloud-settings-panel,
+.desktop-settings-card .cloud-source-panel,
+.desktop-settings-card .cloud-api-panel {
+    background: rgba(255,255,255,0.66);
+    border-color: rgba(143,17,24,0.10);
+    box-shadow: none;
+}
+
+.desktop-settings-card .cloud-panel-head {
+    margin-bottom: 12px;
+}
+
+.desktop-settings-card .cloud-settings-panel {
+    grid-area: account;
+}
+
+.desktop-settings-card .cloud-source-panel {
+    grid-area: source;
+}
+
+.desktop-settings-card .cloud-api-panel {
+    grid-area: api;
 }
 
 .desktop-ai-api-status {
@@ -671,6 +723,7 @@
 }
 
 .cloud-api-panel,
+.cloud-settings-panel,
 .cloud-source-panel,
 .cloud-config-panel,
 .cloud-search-panel {
@@ -680,6 +733,7 @@
 }
 
 .cloud-api-panel,
+.cloud-settings-panel,
 .cloud-source-panel,
 .cloud-config-panel {
     background:
@@ -746,6 +800,7 @@
 
 .cloud-search-panel .online-search-tools {
     margin-top: 0;
+    grid-template-columns: minmax(160px, 1fr) minmax(140px, 0.8fr) auto;
 }
 
 .cloud-status-grid {
@@ -850,6 +905,10 @@
     padding: 10px 12px;
 }
 
+.cloud-search-message {
+    margin: 10px 0 0;
+}
+
 .zlib-register-link {
     color: var(--accent);
     display: inline-block;
@@ -871,6 +930,60 @@
     margin-bottom: 14px;
 }
 
+.desktop-settings-card .zlib-bind-card {
+    align-items: stretch;
+    background:
+        radial-gradient(circle at 0% 0%, rgba(178,13,35,0.08), transparent 34%),
+        rgba(255,255,255,0.72);
+    border-color: rgba(143,17,24,0.12);
+    display: grid;
+    gap: 14px;
+    grid-template-columns: minmax(190px, 0.72fr) minmax(0, 1.28fr);
+    justify-content: stretch;
+    margin-bottom: 0;
+}
+
+.desktop-settings-card .zlib-bind-card > div:first-child {
+    min-width: 0;
+}
+
+.desktop-settings-card .zlib-bind-card h3 {
+    color: var(--text-primary);
+    font-size: 1rem;
+    letter-spacing: -0.1px;
+}
+
+.desktop-settings-card .zlib-bind-card span {
+    line-height: 1.55;
+}
+
+.desktop-settings-card .zlib-bind-card .cloud-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 0;
+    min-width: 0;
+    width: 100%;
+}
+
+.desktop-settings-card .zlib-bind-card .cloud-form-grid .btn {
+    justify-content: center;
+    min-width: 0;
+    width: 100%;
+}
+
+.desktop-settings-card .zlib-bind-card .cloud-form-grid .btn-primary {
+    grid-column: 1 / -1;
+}
+
+.desktop-settings-card .zlib-register-link {
+    align-self: start;
+    background: rgba(178,13,35,0.07);
+    border-radius: 999px;
+    grid-column: 2;
+    margin-top: -2px;
+    padding: 7px 11px;
+    width: fit-content;
+}
+
 .zlib-bind-card.is-bound {
     background: rgba(16,185,129,0.10);
 }
@@ -890,11 +1003,20 @@
 
 @media (max-width: 720px) {
     .desktop-ai-api-card,
+    .cloud-settings-panel,
     .cloud-api-panel,
     .cloud-source-panel,
     .cloud-config-panel,
     .cloud-search-panel {
         padding: 14px;
+    }
+
+    .desktop-settings-grid {
+        grid-template-areas:
+            "account"
+            "api"
+            "source";
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .cloud-panel-head {
@@ -914,6 +1036,16 @@
     .desktop-ai-api-status em {
         grid-column: 1 / -1;
         justify-self: start;
+    }
+
+    .desktop-settings-card .zlib-bind-card,
+    .desktop-settings-card .zlib-bind-card .cloud-form-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .desktop-settings-card .zlib-bind-card .cloud-form-grid .btn-primary,
+    .desktop-settings-card .zlib-register-link {
+        grid-column: auto;
     }
 }
 
@@ -1001,7 +1133,12 @@
 }
 
 .download-action {
+    align-items: center;
+    flex-shrink: 0;
+    justify-content: center;
     min-width: 118px;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .download-action.is-running,
@@ -2249,6 +2386,19 @@
     background:
         radial-gradient(circle at 100% 0%, rgba(185,130,50,0.13), transparent 34%),
         linear-gradient(145deg, rgba(var(--bg-surface-rgb),0.96), rgba(var(--bg-primary-rgb),0.68));
+}
+
+#desktop-ai-api-card.desktop-settings-card {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(178,13,35,0.08), transparent 30%),
+        radial-gradient(circle at 0% 100%, rgba(185,130,50,0.10), transparent 34%),
+        linear-gradient(145deg, rgba(var(--bg-surface-rgb),0.97), rgba(var(--bg-primary-rgb),0.74));
+    border-color: rgba(143,17,24,0.12);
+    box-shadow: var(--shadow-control);
+}
+
+#desktop-ai-api-card.desktop-settings-card .cloud-account-row {
+    margin-bottom: 0;
 }
 
 .book-card {

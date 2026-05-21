@@ -878,7 +878,7 @@ const App = {
         }
         this.closeAllPanels();
         if (TTS.speaking || TTS.paused) TTS.stop();
-        TTS.speak(text, { source: 'book' });
+        TTS.speak(text, this.getBookTTSOptions());
     },
 
     // AI 讲书
@@ -1172,6 +1172,30 @@ const App = {
         return Reader.getCurrentText() || '';
     },
 
+    getBookTTSOptions() {
+        return {
+            source: 'book',
+            sourceId: Reader.book?.id || null,
+            onComplete: () => this.continueBookTTSAfterPage()
+        };
+    },
+
+    async continueBookTTSAfterPage() {
+        const bookId = Reader.book?.id;
+        if (!bookId || TTS.source !== 'book' || !TTS.completed || TTS.speaking || TTS.paused) return;
+        const previousText = this.getBookTTSText().trim();
+        const moved = await Reader.nextPage();
+        if (!moved || Reader.book?.id !== bookId || TTS.source !== 'book' || !TTS.completed || TTS.speaking || TTS.paused) return;
+        await Reader.waitForCurrentPageReady?.(1600);
+        if (Reader.book?.id !== bookId || TTS.source !== 'book' || !TTS.completed || TTS.speaking || TTS.paused) return;
+        const text = this.getBookTTSText();
+        if (!text || !text.trim() || text.trim() === previousText) {
+            TTS.updateUI();
+            return;
+        }
+        TTS.speak(text, this.getBookTTSOptions());
+    },
+
     async startMobileBookTTS() {
         await Reader.waitForCurrentPageReady?.(1200);
         const text = this.getBookTTSText();
@@ -1180,7 +1204,7 @@ const App = {
             return;
         }
         if (TTS.speaking || TTS.paused) TTS.stop();
-        TTS.speak(text, { source: 'book' });
+        TTS.speak(text, this.getBookTTSOptions());
     },
 
     getMobileBookTTSNavIndex(direction) {

@@ -27,6 +27,7 @@ const TTS = {
     sentenceTargets: [],
     sentenceTargetRoot: null,
     sentenceTargetClickHandler: null,
+    onComplete: null,
 
     init() {
         if (this.isNativeSpeech()) {
@@ -148,9 +149,14 @@ const TTS = {
         this.rootOverride = null;
         this.sentences = [];
         this.currentSentence = 0;
+        this.onComplete = typeof options.onComplete === 'function' ? options.onComplete : null;
 
         text = String(text || '');
-        if (!text.trim()) { this.updateUI(); return; }
+        if (!text.trim()) {
+            this.onComplete = null;
+            this.updateUI();
+            return;
+        }
         this.source = options.source || null;
         this.sourceId = options.sourceId || null;
         this.rootOverride = options.root || null;
@@ -190,12 +196,30 @@ const TTS = {
     speakNext() {
 
         if (this.currentSentence >= this.sentences.length || !this.speaking) {
+            const completionToken = this.playbackToken;
+            const onComplete = this.speaking ? this.onComplete : null;
+            this.onComplete = null;
             this.currentUtterance = null;
             this.speaking = false;
             this.paused = false;
             this.completed = this.sentences.length > 0;
             this.stopWatchdog();
             this.updateUI();
+            if (onComplete && this.completed) {
+                setTimeout(() => {
+                    if (
+                        completionToken === this.playbackToken &&
+                        this.completed &&
+                        !this.speaking &&
+                        !this.paused
+                    ) {
+                        Promise.resolve(onComplete({
+                            source: this.source,
+                            sourceId: this.sourceId
+                        })).catch(err => console.warn('TTS completion handler failed:', err));
+                    }
+                }, 0);
+            }
             return;
         }
         const sentence = this.sentences[this.currentSentence].trim();
@@ -342,6 +366,7 @@ const TTS = {
         this.currentSentenceRetryCount = 0;
         this.retrySentenceIndex = -1;
         this.lastWatchdogRestartAt = 0;
+        this.onComplete = null;
         this.clearHighlight();
         this.updateUI();
     },
@@ -1093,6 +1118,7 @@ const TTS = {
         this.rootOverride = null;
         this.sentences = [];
         this.currentSentence = 0;
+        this.onComplete = null;
         this.updateUI();
     },
 

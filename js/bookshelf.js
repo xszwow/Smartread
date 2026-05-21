@@ -946,7 +946,6 @@ const Bookshelf = {
         section.id = 'cloud-section';
         section.className = 'cloud-section';
         section.innerHTML = `
-            <div id="desktop-ai-api-card" class="desktop-ai-api-card hidden" aria-label="AI API 配置"></div>
             <div class="cloud-card">
                 <div class="cloud-card-head">
                     <div>
@@ -955,7 +954,8 @@ const Bookshelf = {
                     </div>
                 </div>
                 <div id="cloud-body" class="cloud-body"></div>
-            </div>`;
+            </div>
+            <div id="desktop-ai-api-card" class="desktop-ai-api-card desktop-settings-card hidden" aria-label="设置"></div>`;
         shelf.insertAdjacentElement('afterend', section);
     },
 
@@ -1029,17 +1029,9 @@ const Bookshelf = {
             return;
         }
 
-        body.innerHTML = `
-            <div class="cloud-account-row">
-                <div>
-                    <strong>${escapeHTML(this.user.email)}</strong>
-                    <span>SmartRead 已登录，本地书架和阅读进度会按邮箱隔离保存。</span>
-                </div>
-                <button class="btn btn-icon" onclick="Bookshelf.logout()">退出</button>
-            </div>
-            ${this.cloud.message ? `<div class="cloud-message">${escapeHTML(this.cloud.message)}</div>` : ''}
-            ${this.cloudServiceConfigHTML()}
-            ${this.zlibBound && !this.cloud.rebinding ? this.onlineSearchPanelHTML() : ''}`;
+        body.innerHTML = this.zlibBound && !this.cloud.rebinding
+            ? this.onlineSearchPanelHTML()
+            : this.onlineSearchDisabledHTML();
     },
 
     renderDesktopAIConfig() {
@@ -1053,16 +1045,45 @@ const Bookshelf = {
         card.classList.remove('hidden');
         card.innerHTML = `<div class="cloud-panel-head">
                 <div>
-                    <span>API</span>
-                    <h3>AI API 配置</h3>
+                    <span>SETTINGS</span>
+                    <h3>设置</h3>
                 </div>
-                <p>AI 阅读、讲书和问答的接口设置，独立于在线找书。</p>
+                <p>账号、在线书源和 AI API 统一在这里管理，搜索区只负责找书下载。</p>
             </div>
-            <button class="desktop-ai-api-status ${this.aiConfigured ? 'is-ready' : ''}" type="button" onclick="App.togglePanel('settings')">
-                <span>AI API</span>
-                <strong>${this.aiConfigured ? '已配置' : '待配置'}</strong>
-                <em>打开配置</em>
-            </button>`;
+            ${this.globalCloudMessageHTML()}
+            <div class="desktop-settings-grid">
+                <section class="cloud-settings-panel" aria-label="账号">
+                    <div class="cloud-panel-head">
+                        <div>
+                            <span>ACCOUNT</span>
+                            <h3>账号</h3>
+                        </div>
+                        <p>本地书架和阅读进度会按邮箱隔离保存。</p>
+                    </div>
+                    <div class="cloud-account-row">
+                        <div>
+                            <strong>${escapeHTML(this.user.email)}</strong>
+                            <span>SmartRead 已登录。</span>
+                        </div>
+                        <button class="btn btn-icon" onclick="Bookshelf.logout()">退出</button>
+                    </div>
+                </section>
+                ${this.cloudServiceConfigHTML()}
+                <section class="cloud-api-panel" aria-label="AI API 配置">
+                    <div class="cloud-panel-head">
+                        <div>
+                            <span>API</span>
+                            <h3>AI API</h3>
+                        </div>
+                        <p>阅读、讲书和问答的接口设置。</p>
+                    </div>
+                    <button class="desktop-ai-api-status ${this.aiConfigured ? 'is-ready' : ''}" type="button" onclick="App.togglePanel('settings')">
+                        <span>AI API</span>
+                        <strong>${this.aiConfigured ? '已配置' : '待配置'}</strong>
+                        <em>打开配置</em>
+                    </button>
+                </section>
+            </div>`;
     },
 
     cloudServiceConfigHTML() {
@@ -1077,9 +1098,25 @@ const Bookshelf = {
                         <span>SOURCE</span>
                         <h3>书源绑定</h3>
                     </div>
-                    <p>Z-Library 只负责在线找书和下载，和 API 配置分开管理。</p>
+                    <p>Z-Library 只负责在线找书和下载。</p>
                 </div>
                 ${zlibControl}
+            </section>`;
+    },
+
+    onlineSearchDisabledHTML() {
+        const message = this.cloud.rebinding
+            ? '正在换绑书源，完成或取消后再搜索。'
+            : '先在下方设置里绑定 Z-Library 书源，再在线找书。';
+        return `<section class="cloud-search-panel" aria-label="搜索下载">
+                <div class="cloud-panel-head">
+                    <div>
+                        <span>SEARCH</span>
+                        <h3>搜索下载</h3>
+                    </div>
+                    <p>输入书名、作者或 ISBN，下载完成后自动进入当前书架。</p>
+                </div>
+                <div class="cloud-empty">${message}</div>
             </section>`;
     },
 
@@ -1103,7 +1140,7 @@ const Bookshelf = {
                     <span>Android 原生层保存书源账号、下载文件和在线书籍记录，不依赖 SmartRead 服务器。</span>
                 </div>
             </div>
-            ${this.cloud.message ? `<div class="cloud-message">${escapeHTML(this.cloud.message)}</div>` : ''}
+            ${this.globalCloudMessageHTML()}
             ${this.cloudServiceConfigHTML()}
             ${this.zlibBound && !this.cloud.rebinding ? this.onlineSearchPanelHTML() : ''}`;
     },
@@ -1231,8 +1268,26 @@ const Bookshelf = {
                 </select>
                 <button class="btn btn-primary" onclick="Bookshelf.onlineSearch(1)" ${this.cloud.busy ? 'disabled' : ''}>搜索</button>
             </div>
+            ${this.searchCloudMessageHTML()}
             <div class="online-results">${results}</div>
             ${this.onlinePagerHTML()}`;
+    },
+
+    isSearchCloudMessage(message = this.cloud.message) {
+        return message === '请输入搜索关键词。'
+            || message === '正在搜索...'
+            || message === '没有找到结果。'
+            || message.startsWith('搜索失败:');
+    },
+
+    globalCloudMessageHTML() {
+        if (!this.cloud.message || this.isSearchCloudMessage()) return '';
+        return `<div class="cloud-message">${escapeHTML(this.cloud.message)}</div>`;
+    },
+
+    searchCloudMessageHTML() {
+        if (!this.cloud.message || !this.isSearchCloudMessage()) return '';
+        return `<div class="cloud-message cloud-search-message">${escapeHTML(this.cloud.message)}</div>`;
     },
 
     onlinePagerHTML(options = {}) {

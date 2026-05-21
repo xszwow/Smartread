@@ -75,6 +75,14 @@
 - 修复：标题改为“在线找书”，内部拆为“API 配置”“书源绑定”“搜索下载”三个独立区域，并更新静态资源版本参数避免旧缓存。
 - 问题：`AI API 配置` 仍在在线找书主卡片内，和书源/搜索块视觉归属混淆。
 - 修复：新增独立桌面端 `AI API 配置` 卡片，放到在线找书主卡片外；在线找书卡片内只保留账号、书源绑定和搜索下载。
+- 问题：账号、书源绑定和 AI API 分散后仍缺少统一设置入口，搜索区和配置区视觉关系不清。
+- 修复：将桌面端独立卡片升级为“设置”区，账号与 AI API 位于第一行，书源绑定位于第二行；在线找书主卡片只保留搜索下载和搜索状态。
+- 问题：长标题搜索结果会撑大 CSS Grid 自动列，导致下载按钮超出可视区域；“正在搜索...”消息也出现在账号区域附近。
+- 修复：为 `.cloud-section`、`.cloud-body`、`.cloud-search-panel`、`.online-results`、`.online-result`、`.online-info` 增加 `min-width: 0` / `max-width: 100%`，并把搜索消息限定在搜索面板内部。
+- 问题：书源绑定表单横向铺满一行，输入框和按钮比例失衡。
+- 修复：设置区内的书源绑定卡改为左侧说明、右侧两列输入加全宽主按钮；移动端自动回退单列。
+- 问题：听书读完当前页后会停止，不能自动翻页继续读下一页。
+- 修复：`TTS.speak()` 增加完成回调；普通书本朗读完成后由 `App.continueBookTTSAfterPage()` 调用 `Reader.nextPage()`，确认成功翻页且新页有文字后继续朗读；末页或翻页失败时停止，避免循环重读。
 
 ## 验证结果
 
@@ -84,6 +92,17 @@
 - `.\tools\node-v24.15.0-win-x64\node.exe --check js\bookshelf.js`：通过。
 - `.\tools\node-v24.15.0-win-x64\npm.cmd run build`：在线找书分区调整后通过。
 - `.\tools\node-v24.15.0-win-x64\npm.cmd test`：AI API 配置移出在线找书块后通过，`1` 个测试文件、`19` 个测试全部通过。
+- `.\tools\node-v24.15.0-win-x64\npm.cmd run build`：设置区重组和长标题溢出修复后通过。
+- `.\tools\node-v24.15.0-win-x64\npm.cmd test`：设置区重组后通过，`1` 个测试文件、`19` 个测试全部通过。
+- `git diff --check -- css/bookshelf.css js/bookshelf.js index.html UI_REFACTOR_REPORT.md`：通过，无空白错误。
+- `.\tools\node-v24.15.0-win-x64\node.exe --check js\tts.js`、`js\reader.js`、`js\app.js`：听书自动翻页修改后均通过。
+- `.\tools\node-v24.15.0-win-x64\npm.cmd run build`：听书自动翻页修改后通过。
+- `.\tools\node-v24.15.0-win-x64\npm.cmd test`：听书自动翻页修改后通过，`1` 个测试文件、`19` 个测试全部通过。
+- Playwright 验证：模拟 TXT 书第一页朗读完成后，自动翻到第 2 页并调用 `TTS.speak("第二页内容。", { source: "book" })`；再次触发末页完成时不再翻页、不再重启朗读。
+- 内置浏览器验证：`http://localhost:4173/?preview=settings-layout-polish-20260522b` 下，在线搜索区不再包含账号/书源配置，设置区包含 `账号`、`书源绑定`、`AI API` 三块。
+- 内置浏览器验证：桌面宽度下 `document.documentElement.scrollWidth === clientWidth`，设置区 `grid-template-areas = "account api" "source source"`。
+- Playwright 移动验证：`451x790` 视口下 `scrollWidth = 451`，设置区回退为 `"account" "api" "source"` 单列布局。
+- Playwright 长标题回归：`837px` 宽度下手动注入超长书名搜索结果，页面 `scrollWidth = 837`，下载按钮右边界仍在结果卡片内。
 - 本地服务：`http://127.0.0.1:4173/api/health` 返回 `{"ok":true,"deploymentMode":"web"}`。
 - 内置浏览器桌面验证：标题、顶部品牌、favicon/logo、登录卡 logo 均正常加载。
 - 内置浏览器移动验证：`390x844` 视口下 logo 和登录卡可见，页面横向溢出为 `hidden`。
