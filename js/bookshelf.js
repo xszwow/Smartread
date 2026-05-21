@@ -484,6 +484,7 @@ const Bookshelf = {
                     title: '继续阅读',
                     detail: recent.title,
                     meta: `已读 ${Math.round(recent.progress || 0)}%`,
+                    coverImg: recent.coverImg || null,
                     onclick: 'Bookshelf.openRecentBook()'
                 }
                 : {
@@ -550,9 +551,12 @@ const Bookshelf = {
 
         return `<section id="mobile-dashboard-home" class="mobile-dashboard-home" aria-label="智读功能主页">
                 <div class="mobile-dashboard-head">
-                    <div class="mobile-empty-brand">智读</div>
-                    <h2>阅读主页</h2>
-                    <p>${escapeHTML(status)}</p>
+                    <img class="mobile-dashboard-logo" src="images/biaoge-logo.png" alt="表哥智读 logo" width="68" height="68">
+                    <div class="mobile-dashboard-title">
+                        <div class="mobile-empty-brand">表哥智读</div>
+                        <h2>阅读主页</h2>
+                        <p>${escapeHTML(status)}</p>
+                    </div>
                 </div>
                 <div id="mobile-metro-grid" class="mobile-metro-grid">
                     ${tiles.map(tile => this.mobileTileHTML(tile)).join('')}
@@ -561,11 +565,13 @@ const Bookshelf = {
     },
 
     mobileTileHTML(tile) {
-        return `<button id="mobile-empty-tile-${escapeAttr(tile.key)}" class="mobile-metro-tile is-${escapeAttr(tile.size)} tile-${escapeAttr(tile.tone)}" type="button"
+        const cover = tile.coverImg ? this.mobileCoverPreviewHTML(tile.coverImg, tile.title, 'mobile-tile-cover') : '';
+        return `<button id="mobile-empty-tile-${escapeAttr(tile.key)}" class="mobile-metro-tile is-${escapeAttr(tile.size)} tile-${escapeAttr(tile.tone)}${cover ? ' has-cover' : ''}" type="button"
                 data-mobile-tile="${escapeAttr(tile.key)}" onclick="${escapeAttr(tile.onclick)}">
                 <span class="mobile-tile-kicker">${escapeHTML(tile.kicker)}</span>
                 <strong>${escapeHTML(tile.title)}</strong>
                 <small>${escapeHTML(tile.detail)}</small>
+                ${cover}
                 <em>${escapeHTML(tile.meta)}</em>
             </button>`;
     },
@@ -652,9 +658,12 @@ const Bookshelf = {
         const pct = Math.round(book.progress || 0);
         const safeId = encodeURIComponent(book.id);
         const title = String(book.title || '未命名书籍');
+        const cover = book.coverImg
+            ? this.mobileCoverPreviewHTML(book.coverImg, title, 'mobile-library-cover', title.slice(0, 1) || '书')
+            : `<span class="mobile-library-cover" style="background:${book.gradient || generateBookGradient(title)}">${escapeHTML(title.slice(0, 1) || '书')}</span>`;
         return `<div class="mobile-library-item">
                 <button class="mobile-library-open" type="button" data-book-id="${escapeAttr(book.id)}" onclick="Bookshelf.openBook(decodeURIComponent('${safeId}'))">
-                    <span class="mobile-library-cover" style="background:${book.gradient || generateBookGradient(title)}">${escapeHTML(title.slice(0, 1) || '书')}</span>
+                    ${cover}
                     <span class="mobile-library-copy">
                         <strong>${escapeHTML(title)}</strong>
                         <small>${pct > 0 ? `已读 ${pct}%` : '未开始'}</small>
@@ -663,6 +672,14 @@ const Bookshelf = {
                 </button>
                 <button class="mobile-library-delete" type="button" title="删除" aria-label="删除${escapeAttr(title)}" onclick="Bookshelf.deleteBook(decodeURIComponent('${safeId}'))">✕</button>
             </div>`;
+    },
+
+    mobileCoverPreviewHTML(src, title, className, fallback = '书') {
+        const safeFallback = escapeHTML(fallback);
+        return `<span class="${escapeAttr(className)} has-image">
+                <span class="mobile-cover-fallback">${safeFallback}</span>
+                <img src="${escapeAttr(src)}" alt="${escapeAttr(title)}" loading="lazy" onerror="this.remove()">
+            </span>`;
     },
 
     mobileEmptyOnlineHTML() {
@@ -1089,14 +1106,10 @@ const Bookshelf = {
         return `
             <div class="cloud-auth">
                 <div class="login-mark" aria-hidden="true">
-                    <svg viewBox="0 0 34 34" fill="none">
-                        <rect width="34" height="34" rx="10" fill="#007AFF"/>
-                        <path d="M17 11.5C17 11.5 14.5 10 11 10C10.17 10 9.5 10.67 9.5 11.5V23C9.5 23.83 10.17 24.5 11 24.5C14.5 24.5 17 26 17 26" fill="white" fill-opacity="0.95"/>
-                        <path d="M17 11.5C17 11.5 19.5 10 23 10C23.83 10 24.5 10.67 24.5 11.5V23C24.5 23.83 23.83 24.5 23 24.5C19.5 24.5 17 26 17 26" fill="white" fill-opacity="0.75"/>
-                    </svg>
+                    <img src="images/biaoge-logo.png" alt="">
                 </div>
                 <div>
-                    <h3>登录智读</h3>
+                    <h3>登录表哥智读</h3>
                     <p>用邮箱验证码继续，进入你的书架、阅读进度和 AI 设置。</p>
                 </div>
                 <div class="cloud-form-grid zlib-login-grid">

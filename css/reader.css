@@ -1577,3 +1577,161 @@
         pointer-events: none;
     }
 }
+
+/* ===== 阅读器控件统一增强 ===== */
+.sidebar,
+.left-sidebar,
+.right-panel,
+.pdf-page-indicator {
+    background: var(--surface-glass);
+    border-color: var(--border-strong);
+}
+
+.left-sidebar,
+.right-panel {
+    box-shadow: var(--shadow-control);
+}
+
+.sb-btn,
+.ls-close,
+.rp-tab,
+.toc-item,
+.float-nav-btn {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.sb-btn,
+.ls-close,
+.rp-tab {
+    border-radius: var(--radius-control);
+    transition: transform 0.18s var(--ease), background 0.18s var(--ease), color 0.18s var(--ease), box-shadow 0.18s var(--ease);
+}
+
+.sb-btn:focus-visible,
+.ls-close:focus-visible,
+.rp-tab:focus-visible,
+.toc-item:focus-visible,
+.float-nav-btn:focus-visible,
+.mobile-reader-back-only:focus-visible,
+.mobile-reader-tool:focus-visible,
+.mobile-player-btn:focus-visible,
+.mobile-player-main:focus-visible,
+.mobile-caption-toggle:focus-visible,
+.mobile-more-menu button:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
+}
+
+.sb-btn.active,
+.sb-btn.is-tool-active,
+.rp-tab.active,
+.toc-item.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.sb-btn::after {
+    background: var(--surface-glass-strong);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-control);
+}
+
+.float-nav-btn {
+    color: var(--text-secondary);
+}
+
+.float-nav-btn:hover {
+    background: linear-gradient(90deg, rgba(var(--bg-surface-rgb), 0.24), transparent);
+}
+
+.float-nav-btn.next:hover {
+    background: linear-gradient(270deg, rgba(var(--bg-surface-rgb), 0.24), transparent);
+}
+
+.mobile-ai-start-btn,
+.mobile-player-main {
+    background: var(--accent-gradient);
+    box-shadow: 0 12px 28px var(--accent-glow);
+}
+
+@media (hover: hover) {
+    .sb-btn:hover,
+    .ls-close:hover,
+    .rp-tab:hover,
+    .toc-item:hover,
+    .mobile-more-menu button:hover {
+        transform: translateY(-1px);
+    }
+}
+
+@media (max-width: 1024px) {
+    #reader-view.active .mobile-reader-back-only:not(.hidden),
+    .mobile-reader-back,
+    .mobile-reader-tool,
+    .mobile-player-btn,
+    .mobile-caption-toggle {
+        transition: transform 0.16s var(--ease), background 0.16s var(--ease), color 0.16s var(--ease), box-shadow 0.16s var(--ease);
+    }
+
+    .sidebar,
+    .right-panel,
+    .mobile-more-menu:not(.hidden),
+    .mobile-ai-player,
+    .mobile-tts-player {
+        background: var(--surface-glass-strong);
+        border-color: var(--border-strong);
+        box-shadow: var(--shadow-lifted);
+    }
+
+    .mobile-reader-toolbar:not(.hidden),
+    #reader-view.active .mobile-reader-back-only:not(.hidden) {
+        background: var(--surface-glass);
+        border: 1px solid var(--border-strong);
+        box-shadow: var(--shadow-control);
+        backdrop-filter: blur(22px) saturate(160%);
+        -webkit-backdrop-filter: blur(22px) saturate(160%);
+    }
+
+    #reader-view.active .mobile-reader-back-only:not(.hidden) {
+        border-radius: 50%;
+    }
+
+    .mobile-reader-back:active,
+    .mobile-reader-tool:active,
+    .mobile-player-btn:active,
+    .mobile-player-main:active,
+    .mobile-caption-toggle:active,
+    .mobile-more-menu button:active,
+    #reader-view.active .mobile-reader-back-only:not(.hidden):active {
+        transform: scale(0.94);
+    }
+
+    .mobile-reader-tool.active,
+    .mobile-caption-toggle.is-on {
+        background: var(--accent-soft);
+        border-color: var(--accent-glow);
+        color: var(--accent);
+    }
+
+    .theme-dark .sidebar,
+    .theme-dark .right-panel,
+    .theme-dark .mobile-more-menu:not(.hidden),
+    .theme-dark .mobile-reader-toolbar:not(.hidden),
+    .theme-dark #reader-view.active .mobile-reader-back-only:not(.hidden),
+    .theme-dark .mobile-ai-player,
+    .theme-dark .mobile-tts-player {
+        background: var(--surface-glass-strong);
+        border-color: var(--border-strong);
+    }
+
+    .theme-sepia .sidebar,
+    .theme-sepia .right-panel,
+    .theme-sepia .mobile-more-menu:not(.hidden),
+    .theme-sepia .mobile-reader-toolbar:not(.hidden),
+    .theme-sepia #reader-view.active .mobile-reader-back-only:not(.hidden),
+    .theme-sepia .mobile-ai-player,
+    .theme-sepia .mobile-tts-player {
+        background: var(--surface-glass-strong);
+        border-color: var(--border-strong);
+    }
+}

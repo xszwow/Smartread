@@ -106,7 +106,7 @@ function isAllowedStaticPath(frontendDir: string, filePath: string): boolean {
     : path.relative(frontendDir, filePath).replace(/\\/g, "/");
   if (rel.startsWith("../") || path.isAbsolute(rel)) return false;
   if (rel === "" || rel === "index.html" || rel === "index.css") return true;
-  return rel.startsWith("css/") || rel.startsWith("js/");
+  return rel.startsWith("css/") || rel.startsWith("js/") || rel.startsWith("images/");
 }
 
 function isAllowedOrigin(config: AppConfig, origin: string): boolean {

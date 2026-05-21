@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智读 SmartRead - AI 智能阅读</title>
-    <meta name="description" content="融合AI能力的新一代电子阅读软件">
-    <link rel="icon" href="data:,">
+    <title>表哥智读 SmartRead - AI 智能阅读</title>
+    <meta name="description" content="表哥智读，融合 AI 能力的新一代电子阅读软件">
+    <link rel="icon" href="images/biaoge-logo.png">
     <link rel="stylesheet" href="index.css">
     <link rel="stylesheet" href="css/bookshelf.css?v=zlib-rebind-20260518a">
     <link rel="stylesheet" href="css/reader.css">
@@ -23,7 +23,7 @@
         <div id="bookshelf-view" class="view active is-booting">
             <main id="app-boot-splash" class="app-boot-splash" aria-live="polite">
                 <div>
-                    <div class="boot-brand">SmartRead</div>
+                    <div class="boot-brand">表哥智读</div>
                     <h1>正在启动</h1>
                     <p>正在进入本机书架。</p>
                     <div class="boot-progress" aria-hidden="true"></div>
@@ -31,18 +31,8 @@
             </main>
             <header class="app-header">
                 <div class="logo">
-                    <svg class="logo-icon-svg" width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="34" height="34" rx="10" fill="url(#logo_grad)"/>
-                        <path d="M17 11.5C17 11.5 14.5 10 11 10C10.17 10 9.5 10.67 9.5 11.5V23C9.5 23.83 10.17 24.5 11 24.5C14.5 24.5 17 26 17 26" fill="white" fill-opacity="0.95"/>
-                        <path d="M17 11.5C17 11.5 19.5 10 23 10C23.83 10 24.5 10.67 24.5 11.5V23C24.5 23.83 23.83 24.5 23 24.5C19.5 24.5 17 26 17 26" fill="white" fill-opacity="0.75"/>
-                        <defs>
-                            <linearGradient id="logo_grad" x1="0" y1="0" x2="34" y2="34" gradientUnits="userSpaceOnUse">
-                                <stop stop-color="#3b82f6"/>
-                                <stop offset="1" stop-color="#06b6d4"/>
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                    <h1>智读</h1>
+                    <img class="logo-image" src="images/biaoge-logo.png" alt="表哥智读 logo" width="34" height="34">
+                    <h1>表哥智读</h1>
                 </div>
             </header>
             <!-- 主内容区 -->
@@ -203,7 +193,7 @@
                         <!-- Welcome State -->
                         <div id="chat-welcome" class="chat-welcome">
                             <div class="chat-welcome-icon">✦</div>
-                            <h3>智读 AI</h3>
+                            <h3>表哥智读 AI</h3>
                             <p>关于当前阅读内容，你可以问我任何问题</p>
                             <div class="chat-suggestions">
                                 <button class="chat-suggestion-btn" type="button" onclick="App.sendChatText('帮我总结这一页的要点')">📝 帮我总结这一页的要点</button>
@@ -214,7 +204,7 @@
                     </div>
                     <div class="chat-input-area">
                         <div class="chat-input-wrap">
-                            <input id="chat-input" placeholder="向智读 AI 提问..." aria-label="向智读 AI 提问" onkeydown="if(event.key==='Enter'){event.preventDefault();App.sendChat()}">
+                            <input id="chat-input" placeholder="向表哥智读 AI 提问..." aria-label="向表哥智读 AI 提问" onkeydown="if(event.key==='Enter'){event.preventDefault();App.sendChat()}">
                             <button id="btn-voice" class="chat-action-btn" type="button" onclick="Voice.toggle()" title="语音输入" aria-label="语音输入">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                             </button>

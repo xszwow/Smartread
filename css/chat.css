@@ -510,6 +510,63 @@
 }
 
 @keyframes voiceButtonPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(0,122,255,0.12); }
-    50% { box-shadow: 0 0 0 4px rgba(0,122,255,0.08); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(178,13,35,0.12); }
+    50% { box-shadow: 0 0 0 4px rgba(178,13,35,0.08); }
+}
+
+/* ===== 对话控件统一增强 ===== */
+.user-bubble,
+.chat-input-wrap .chat-send-btn,
+.chat-ai-avatar,
+.chat-typing-avatar,
+.chat-welcome-icon {
+    background: var(--accent-gradient);
+}
+
+.user-bubble,
+.chat-input-wrap,
+.chat-suggestion-btn,
+.chat-error .chat-bubble {
+    box-shadow: var(--shadow-control);
+}
+
+.chat-input-wrap {
+    background: var(--surface-glass-strong);
+    border-color: var(--border-strong);
+}
+
+.chat-input-wrap:focus-within,
+.chat-input-wrap.is-focused {
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring), var(--shadow-control);
+}
+
+.chat-input-wrap .chat-action-btn,
+.chat-voice-btn,
+.chat-suggestion-btn {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.chat-input-wrap .chat-action-btn:focus-visible,
+.chat-input-wrap .chat-send-btn:focus-visible,
+.chat-voice-btn:focus-visible,
+.chat-suggestion-btn:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
+}
+
+.chat-input-wrap .chat-send-btn {
+    box-shadow: 0 8px 18px var(--accent-glow);
+}
+
+.chat-input-wrap:not(.has-input) .chat-send-btn {
+    box-shadow: none;
+}
+
+@media (hover: hover) {
+    .chat-input-wrap .chat-action-btn:hover,
+    .chat-voice-btn:hover,
+    .chat-suggestion-btn:hover {
+        transform: translateY(-1px);
+    }
 }

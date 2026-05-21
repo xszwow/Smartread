@@ -70,7 +70,7 @@ const scenarios = [
     auth: true,
     zlibBound: false,
     books: [],
-    expectedPrimary: 'import',
+    expectedPrimary: 'continue',
     checks: ['metro-home', 'import-page', 'online-page', 'account-page', 'mobile-settings', 'zlib-unbound']
   },
   {
@@ -79,7 +79,7 @@ const scenarios = [
     auth: true,
     zlibBound: true,
     books: [],
-    expectedPrimary: 'import',
+    expectedPrimary: 'continue',
     checks: ['metro-home', 'online-page', 'zlib-bound']
   },
   {
@@ -88,7 +88,7 @@ const scenarios = [
     auth: true,
     zlibBound: true,
     books: unreadBooks,
-    expectedPrimary: 'library',
+    expectedPrimary: 'continue',
     checks: ['metro-home', 'library-page', 'online-page', 'account-page']
   },
   {
@@ -444,7 +444,7 @@ async function assertFirstScreenClean(page, scenario) {
   }
   if (!scenario.auth) {
     assert(result.cloudInFirstScreen, '未登录状态首屏缺少登录区域', result);
-    assert(result.text.includes('登录智读'), '未登录状态缺少登录提示', result);
+    assert(/登录(?:表哥)?智读/.test(result.text), '未登录状态缺少登录提示', result);
   } else {
     assert(result.emptyInFirstScreen || scenario.books.length > 0 || scenario.viewport.width <= 430, '空书架提示没有出现在首屏', result);
   }

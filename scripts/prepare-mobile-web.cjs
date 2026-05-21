@@ -16,6 +16,7 @@ try {
   copyFile("index.css");
   copyDir("css");
   copyDir("js");
+  copyDir("images");
 
   const config = [
     "window.SmartReadNativeConfig = {",

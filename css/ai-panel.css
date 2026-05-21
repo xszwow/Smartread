@@ -233,3 +233,71 @@
         display: none !important;
     }
 }
+
+/* ===== AI 面板控件统一增强 ===== */
+.ai-explain-box,
+.quiz-card {
+    background: var(--surface-glass);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-control);
+}
+
+.settings-group input,
+.ai-select,
+.ai-page-btn,
+.ai-tts-btn,
+.ai-tts-speed {
+    background: var(--surface-control);
+    border-color: var(--border-strong);
+    border-radius: var(--radius-control);
+    box-shadow: var(--shadow-control);
+    outline: none;
+}
+
+.ai-avatar,
+.ai-start-btn,
+.ai-tts-main {
+    background: var(--accent-gradient);
+    box-shadow: 0 10px 24px var(--accent-glow);
+    color: #fff;
+}
+
+.ai-start-btn.is-loading .ai-start-icon {
+    border-color: rgba(255,255,255,0.35);
+    border-top-color: #fff;
+}
+
+.ai-page-btn,
+.ai-start-btn,
+.ai-tts-btn,
+.ai-tts-speed {
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease), background 0.18s var(--ease), border-color 0.18s var(--ease), color 0.18s var(--ease);
+}
+
+.settings-group input:focus,
+.ai-select:focus-visible,
+.ai-page-btn:focus-visible,
+.ai-start-btn:focus-visible,
+.ai-tts-btn:focus-visible,
+.ai-tts-speed:focus-visible {
+    border-color: var(--accent);
+    box-shadow: var(--focus-ring), var(--shadow-control);
+    outline: none;
+}
+
+.ai-loading-orbit {
+    border-color: var(--accent-soft);
+    border-right-color: var(--accent);
+    border-top-color: var(--accent);
+}
+
+@media (hover: hover) {
+    .ai-page-btn:hover,
+    .ai-start-btn:hover,
+    .ai-tts-btn:hover,
+    .ai-tts-speed:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-lifted);
+    }
+}
