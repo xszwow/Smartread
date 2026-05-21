@@ -117,6 +117,7 @@ const App = {
         document.getElementById('btn-toc').addEventListener('click', () => this.showTOC());
         document.getElementById('overlay').addEventListener('click', () => this.closeAllPanels());
         document.getElementById('btn-toggle-chat').addEventListener('click', () => this.toggleRightPanel());
+        document.addEventListener('pointerdown', (e) => this.handleLeftSidebarOutsidePointer(e));
         this.bindMobileDrawerHandle();
         document.querySelector('.sidebar')?.addEventListener('click', (e) => {
             if (this.isSmallScreen() && e.target.closest('.sb-btn')) {
@@ -676,6 +677,16 @@ const App = {
         if (hadFocus) btn?.focus({ preventScroll: true });
         this.updateMobileToolbarState();
         if (!this.isSmallScreen()) this.syncReaderLayout();
+    },
+
+    handleLeftSidebarOutsidePointer(event) {
+        if (!document.getElementById('reader-view')?.classList.contains('active')) return;
+        const sidebar = document.getElementById('left-sidebar');
+        if (!sidebar || sidebar.classList.contains('collapsed')) return;
+        const target = event.target;
+        if (sidebar.contains(target)) return;
+        if (target.closest?.('#btn-toc, #btn-mobile-toc')) return;
+        this.closeLeftSidebar();
     },
 
     switchTab(tab) {

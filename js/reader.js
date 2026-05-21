@@ -277,6 +277,10 @@ const Reader = {
                         Selection.showPopup(e.clientX + rect.left, e.clientY + rect.top, text);
                     }
                 });
+                doc.addEventListener('pointerdown', () => {
+                    if (typeof App === 'undefined') return;
+                    App.closeLeftSidebar?.();
+                });
                 doc.addEventListener('keydown', (e) => {
                     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
                     e.preventDefault();

@@ -44,8 +44,8 @@
     --font-ui: "HarmonyOS Sans SC","Microsoft YaHei UI","PingFang SC","Noto Sans SC",sans-serif;
     --font-display: "HarmonyOS Sans SC","Microsoft YaHei UI","PingFang SC","Noto Sans SC",sans-serif;
     --font-read: "Songti SC","SimSun",Georgia,serif;
-    --reader-bg: #f8f1e6;
-    --reader-page-bg: #fffaf2;
+    --reader-bg: #fbf8f2;
+    --reader-page-bg: #fffdf8;
     --pdf-stage-bg: #f0e4d2;
     --pdf-status-bg: rgba(248, 241, 230, 0.84);
     --pdf-page-filter: none;

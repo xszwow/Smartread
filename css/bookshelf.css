@@ -538,6 +538,8 @@
 
 /* ===== Online Library ===== */
 .cloud-section {
+    display: grid;
+    gap: 14px;
     margin-top: 0;
     margin-bottom: 30px;
 }
@@ -552,6 +554,63 @@
     border-radius: var(--radius);
     box-shadow: var(--shadow-md);
     padding: 20px;
+}
+
+.desktop-ai-api-card {
+    background:
+        linear-gradient(135deg, rgba(var(--bg-surface-rgb),0.92), rgba(185,130,50,0.10)),
+        var(--surface-glass);
+    border: 1px solid rgba(178,13,35,0.10);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-control);
+    padding: 18px 20px;
+}
+
+.desktop-ai-api-card .cloud-panel-head {
+    margin-bottom: 12px;
+}
+
+.desktop-ai-api-status {
+    align-items: center;
+    background: var(--surface-control);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+    box-shadow: var(--shadow-control);
+    color: var(--text-primary);
+    cursor: pointer;
+    display: grid;
+    font-family: var(--font-ui);
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    min-height: 56px;
+    padding: 12px 14px;
+    text-align: left;
+    width: 100%;
+}
+
+.desktop-ai-api-status span {
+    color: var(--text-muted);
+    font-size: 0.76rem;
+}
+
+.desktop-ai-api-status strong {
+    color: var(--text-primary);
+    font-size: 0.98rem;
+}
+
+.desktop-ai-api-status em {
+    background: var(--accent-soft);
+    border-radius: 999px;
+    color: var(--accent);
+    font-size: 0.76rem;
+    font-style: normal;
+    font-weight: 800;
+    padding: 7px 11px;
+}
+
+.desktop-ai-api-status.is-ready {
+    background: rgba(20,184,166,0.10);
+    border-color: rgba(20,184,166,0.26);
 }
 
 .cloud-card-head,
@@ -606,7 +665,87 @@
 }
 
 .cloud-body {
+    display: grid;
+    gap: 14px;
     margin-top: 18px;
+}
+
+.cloud-api-panel,
+.cloud-source-panel,
+.cloud-config-panel,
+.cloud-search-panel {
+    border: 1px solid rgba(143,17,24,0.10);
+    border-radius: var(--radius);
+    padding: 16px;
+}
+
+.cloud-api-panel,
+.cloud-source-panel,
+.cloud-config-panel {
+    background:
+        linear-gradient(135deg, rgba(var(--bg-surface-rgb),0.74), rgba(185,130,50,0.08)),
+        var(--surface-glass);
+}
+
+.cloud-search-panel {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(185,130,50,0.13), transparent 34%),
+        linear-gradient(145deg, rgba(var(--bg-surface-rgb),0.96), rgba(var(--bg-primary-rgb),0.68));
+    box-shadow: var(--shadow-control);
+}
+
+.cloud-panel-head {
+    align-items: flex-start;
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.cloud-panel-head span {
+    color: var(--accent);
+    display: block;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    margin-bottom: 4px;
+}
+
+.cloud-panel-head h3 {
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-size: 1.04rem;
+    letter-spacing: -0.2px;
+}
+
+.cloud-panel-head p {
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    line-height: 1.5;
+    max-width: 360px;
+    text-align: right;
+}
+
+.cloud-api-panel .cloud-status-grid,
+.cloud-config-panel .cloud-status-grid {
+    margin-bottom: 12px;
+}
+
+.cloud-status-grid.is-single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.cloud-api-panel .cloud-status-grid.is-single {
+    margin-bottom: 0;
+}
+
+.cloud-source-panel .zlib-bind-card,
+.cloud-config-panel .zlib-bind-card {
+    margin-bottom: 0;
+}
+
+.cloud-search-panel .online-search-tools {
+    margin-top: 0;
 }
 
 .cloud-status-grid {
@@ -747,6 +886,35 @@
     display: grid;
     gap: 10px;
     margin-top: 14px;
+}
+
+@media (max-width: 720px) {
+    .desktop-ai-api-card,
+    .cloud-api-panel,
+    .cloud-source-panel,
+    .cloud-config-panel,
+    .cloud-search-panel {
+        padding: 14px;
+    }
+
+    .cloud-panel-head {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .cloud-panel-head p {
+        max-width: none;
+        text-align: left;
+    }
+
+    .desktop-ai-api-status {
+        grid-template-columns: 1fr auto;
+    }
+
+    .desktop-ai-api-status em {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
 }
 
 .online-result,
@@ -2030,7 +2198,12 @@
 
 .hero-card,
 .stat-item,
+.desktop-ai-api-card,
 .cloud-card,
+.cloud-api-panel,
+.cloud-source-panel,
+.cloud-config-panel,
+.cloud-search-panel,
 .cloud-auth,
 .zlib-bind-card,
 .online-result,
@@ -2042,7 +2215,12 @@
 
 .hero-card,
 .stat-item,
+.desktop-ai-api-card,
 .cloud-card,
+.cloud-api-panel,
+.cloud-source-panel,
+.cloud-config-panel,
+.cloud-search-panel,
 .cloud-auth,
 .zlib-bind-card,
 .online-result,
@@ -2057,6 +2235,20 @@
         linear-gradient(145deg, rgba(var(--bg-surface-rgb), 0.92), rgba(185,130,50,0.12)),
         var(--surface-glass);
     border-radius: var(--radius-lg);
+}
+
+.cloud-api-panel,
+.cloud-source-panel,
+.cloud-config-panel {
+    background:
+        linear-gradient(135deg, rgba(var(--bg-surface-rgb),0.78), rgba(185,130,50,0.09)),
+        var(--surface-glass);
+}
+
+.cloud-search-panel {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(185,130,50,0.13), transparent 34%),
+        linear-gradient(145deg, rgba(var(--bg-surface-rgb),0.96), rgba(var(--bg-primary-rgb),0.68));
 }
 
 .book-card {

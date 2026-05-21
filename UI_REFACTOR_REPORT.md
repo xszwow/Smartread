@@ -71,12 +71,19 @@
 - 修复：为 `body.theme-dark`、`body.theme-sepia`、`.theme-dark #bookshelf-view.active`、`.theme-sepia #bookshelf-view.active` 增加专属背景覆盖。
 - 问题：夜间模式主 `--accent` 曾继承浅色红色品牌色。
 - 修复：`theme-dark` 显式设置 `--accent: #0a84ff`、`--accent-soft` 和 `--accent-glow`。
+- 问题：电脑端在线找书区域标题“账号与在线书源”语义不准，API 配置、书源绑定和搜索下载层级混在一起。
+- 修复：标题改为“在线找书”，内部拆为“API 配置”“书源绑定”“搜索下载”三个独立区域，并更新静态资源版本参数避免旧缓存。
+- 问题：`AI API 配置` 仍在在线找书主卡片内，和书源/搜索块视觉归属混淆。
+- 修复：新增独立桌面端 `AI API 配置` 卡片，放到在线找书主卡片外；在线找书卡片内只保留账号、书源绑定和搜索下载。
 
 ## 验证结果
 
 - `.\tools\node-v24.15.0-win-x64\node.exe scripts\prepare-mobile-web.cjs`：通过。
 - `.\tools\node-v24.15.0-win-x64\npm.cmd run build`：通过。
 - `.\tools\node-v24.15.0-win-x64\npm.cmd test`：通过，`1` 个测试文件、`19` 个测试全部通过。
+- `.\tools\node-v24.15.0-win-x64\node.exe --check js\bookshelf.js`：通过。
+- `.\tools\node-v24.15.0-win-x64\npm.cmd run build`：在线找书分区调整后通过。
+- `.\tools\node-v24.15.0-win-x64\npm.cmd test`：AI API 配置移出在线找书块后通过，`1` 个测试文件、`19` 个测试全部通过。
 - 本地服务：`http://127.0.0.1:4173/api/health` 返回 `{"ok":true,"deploymentMode":"web"}`。
 - 内置浏览器桌面验证：标题、顶部品牌、favicon/logo、登录卡 logo 均正常加载。
 - 内置浏览器移动验证：`390x844` 视口下 logo 和登录卡可见，页面横向溢出为 `hidden`。

@@ -135,6 +135,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: rgba(var(--bg-surface-rgb), 0.92);
     padding: 10px 14px;
     flex-shrink: 0;
     border-bottom: 1px solid var(--border);
@@ -143,6 +144,11 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--text-secondary);
+}
+
+.theme-dark .ls-header,
+.theme-sepia .ls-header {
+    background: rgba(var(--bg-surface-rgb), 0.94);
 }
 
 .ls-close {
@@ -166,7 +172,13 @@
 .ls-content {
     flex: 1;
     overflow-y: auto;
+    background: rgba(var(--bg-surface-rgb), 0.92);
     padding: 4px 0;
+}
+
+.theme-dark .ls-content,
+.theme-sepia .ls-content {
+    background: rgba(var(--bg-surface-rgb), 0.94);
 }
 
 /* --- 中间阅读区 --- */
@@ -457,8 +469,14 @@
 
 /* 目录列表 — Apple Books 风格 */
 .toc-list {
+    background: rgba(var(--bg-surface-rgb), 0.92);
     overflow-y: auto;
     padding: 8px 0;
+}
+
+.theme-dark .toc-list,
+.theme-sepia .toc-list {
+    background: rgba(var(--bg-surface-rgb), 0.94);
 }
 
 .toc-item {
@@ -829,6 +847,10 @@
         display: block;
         flex: 0 0 var(--reader-bottom-inset);
         min-height: var(--reader-bottom-inset);
+    }
+
+    body:not(.theme-dark):not(.theme-sepia) .reader-body.reader-stable-pan::after {
+        background: linear-gradient(180deg, rgba(255, 253, 248, 0.96) 0%, rgba(251, 248, 242, 0.98) 100%);
     }
 
     .mobile-menu-toggle {

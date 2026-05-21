@@ -946,6 +946,7 @@ const Bookshelf = {
         section.id = 'cloud-section';
         section.className = 'cloud-section';
         section.innerHTML = `
+            <div id="desktop-ai-api-card" class="desktop-ai-api-card hidden" aria-label="AI API 配置"></div>
             <div class="cloud-card">
                 <div class="cloud-card-head">
                     <div>
@@ -1010,6 +1011,7 @@ const Bookshelf = {
     renderCloud() {
         const body = document.getElementById('cloud-body');
         if (!body) return;
+        this.renderDesktopAIConfig();
         const kicker = document.getElementById('cloud-kicker');
         const title = document.getElementById('cloud-title');
         if (this.isNativeStandalone()) {
@@ -1020,8 +1022,8 @@ const Bookshelf = {
                 : this.standaloneCloudHTML();
             return;
         }
-        if (kicker) kicker.textContent = this.user ? 'ACCOUNT' : 'SMARTREAD';
-        if (title) title.textContent = this.user ? '账号与在线书源' : '登录智读';
+        if (kicker) kicker.textContent = this.user ? 'ONLINE' : 'SMARTREAD';
+        if (title) title.textContent = this.user ? '在线找书' : '登录智读';
         if (!this.user) {
             body.innerHTML = this.authHTML();
             return;
@@ -1035,22 +1037,63 @@ const Bookshelf = {
                 </div>
                 <button class="btn btn-icon" onclick="Bookshelf.logout()">退出</button>
             </div>
-            <div class="cloud-status-grid">
-                <button class="cloud-status-card ${this.aiConfigured ? 'is-ready' : ''}" onclick="App.togglePanel('settings')">
-                    <span>AI API</span>
-                    <strong>${this.aiConfigured ? '已配置' : '待配置'}</strong>
-                </button>
-                <button class="cloud-status-card ${this.zlibBound ? 'is-ready' : ''}" onclick="document.getElementById('zlib-bind-email')?.focus()">
-                    <span>Z-Library</span>
-                    <strong>${this.zlibBound ? '已绑定' : '可选绑定'}</strong>
-                </button>
-            </div>
             ${this.cloud.message ? `<div class="cloud-message">${escapeHTML(this.cloud.message)}</div>` : ''}
-            ${this.cloud.rebinding
-                ? this.zlibBindHTML(true)
-                : this.zlibBound
-                    ? this.zlibBoundHTML() + this.onlineSearchHTML()
-                    : this.zlibBindHTML()}`;
+            ${this.cloudServiceConfigHTML()}
+            ${this.zlibBound && !this.cloud.rebinding ? this.onlineSearchPanelHTML() : ''}`;
+    },
+
+    renderDesktopAIConfig() {
+        const card = document.getElementById('desktop-ai-api-card');
+        if (!card) return;
+        if (!this.user) {
+            card.classList.add('hidden');
+            card.innerHTML = '';
+            return;
+        }
+        card.classList.remove('hidden');
+        card.innerHTML = `<div class="cloud-panel-head">
+                <div>
+                    <span>API</span>
+                    <h3>AI API 配置</h3>
+                </div>
+                <p>AI 阅读、讲书和问答的接口设置，独立于在线找书。</p>
+            </div>
+            <button class="desktop-ai-api-status ${this.aiConfigured ? 'is-ready' : ''}" type="button" onclick="App.togglePanel('settings')">
+                <span>AI API</span>
+                <strong>${this.aiConfigured ? '已配置' : '待配置'}</strong>
+                <em>打开配置</em>
+            </button>`;
+    },
+
+    cloudServiceConfigHTML() {
+        const zlibControl = this.cloud.rebinding
+            ? this.zlibBindHTML(true)
+            : this.zlibBound
+                ? this.zlibBoundHTML()
+                : this.zlibBindHTML();
+        return `<section class="cloud-source-panel" aria-label="书源绑定">
+                <div class="cloud-panel-head">
+                    <div>
+                        <span>SOURCE</span>
+                        <h3>书源绑定</h3>
+                    </div>
+                    <p>Z-Library 只负责在线找书和下载，和 API 配置分开管理。</p>
+                </div>
+                ${zlibControl}
+            </section>`;
+    },
+
+    onlineSearchPanelHTML() {
+        return `<section class="cloud-search-panel" aria-label="搜索下载">
+                <div class="cloud-panel-head">
+                    <div>
+                        <span>SEARCH</span>
+                        <h3>搜索下载</h3>
+                    </div>
+                    <p>输入书名、作者或 ISBN，下载完成后自动进入当前书架。</p>
+                </div>
+                ${this.onlineSearchHTML()}
+            </section>`;
     },
 
     nativeBackendCloudHTML() {
@@ -1060,22 +1103,9 @@ const Bookshelf = {
                     <span>Android 原生层保存书源账号、下载文件和在线书籍记录，不依赖 SmartRead 服务器。</span>
                 </div>
             </div>
-            <div class="cloud-status-grid">
-                <button class="cloud-status-card ${this.aiConfigured ? 'is-ready' : ''}" onclick="App.togglePanel('settings')">
-                    <span>AI API</span>
-                    <strong>${this.aiConfigured ? '已配置' : '待配置'}</strong>
-                </button>
-                <button class="cloud-status-card ${this.zlibBound ? 'is-ready' : ''}" onclick="document.getElementById('zlib-bind-email')?.focus()">
-                    <span>Z-Library</span>
-                    <strong>${this.zlibBound ? '已绑定' : '可选绑定'}</strong>
-                </button>
-            </div>
             ${this.cloud.message ? `<div class="cloud-message">${escapeHTML(this.cloud.message)}</div>` : ''}
-            ${this.cloud.rebinding
-                ? this.zlibBindHTML(true)
-                : this.zlibBound
-                    ? this.zlibBoundHTML() + this.onlineSearchHTML()
-                    : this.zlibBindHTML()}`;
+            ${this.cloudServiceConfigHTML()}
+            ${this.zlibBound && !this.cloud.rebinding ? this.onlineSearchPanelHTML() : ''}`;
     },
 
     standaloneCloudHTML() {
@@ -1085,21 +1115,39 @@ const Bookshelf = {
                     <span>不依赖 SmartRead 服务器；书籍、笔记和阅读进度保存在当前设备。</span>
                 </div>
             </div>
-            <div class="zlib-bind-card is-bound">
-                <div>
-                    <h3>网页书源</h3>
-                    <span>打开外部网页下载书籍文件，回到智读后导入本地。</span>
+            <section class="cloud-config-panel" aria-label="网页书源入口">
+                <div class="cloud-panel-head">
+                    <div>
+                        <span>CONFIG</span>
+                        <h3>网页书源入口</h3>
+                    </div>
+                    <p>单机模式只负责打开外部书源，下载后的文件再回到智读导入。</p>
                 </div>
-                <div class="zlib-bound-actions">
-                    <button class="btn btn-icon" onclick="Bookshelf.openExternalSource('https://z-library.sk/')">z-library.sk</button>
-                    <button class="btn btn-icon" onclick="Bookshelf.openExternalSource('https://z-library.is/')">z-library.is</button>
+                <div class="zlib-bind-card is-bound">
+                    <div>
+                        <h3>网页书源</h3>
+                        <span>打开外部网页下载书籍文件，回到智读后导入本地。</span>
+                    </div>
+                    <div class="zlib-bound-actions">
+                        <button class="btn btn-icon" onclick="Bookshelf.openExternalSource('https://z-library.sk/')">z-library.sk</button>
+                        <button class="btn btn-icon" onclick="Bookshelf.openExternalSource('https://z-library.is/')">z-library.is</button>
+                    </div>
                 </div>
-            </div>
-            <div class="online-search-tools">
+            </section>
+            <section class="cloud-search-panel" aria-label="网页书源搜索">
+                <div class="cloud-panel-head">
+                    <div>
+                        <span>SEARCH</span>
+                        <h3>网页搜索</h3>
+                    </div>
+                    <p>搜索入口独立出来，避免和书源配置混在一起。</p>
+                </div>
+                <div class="online-search-tools">
                 <input id="standalone-online-query" class="cloud-query" type="search" enterkeyhint="search" aria-label="搜索网页书源" placeholder="搜索书名、作者、ISBN..."
                     onkeydown="if(event.key==='Enter')Bookshelf.openStandaloneOnlineSearch()">
                 <button class="btn btn-primary" onclick="Bookshelf.openStandaloneOnlineSearch()">打开搜索</button>
-            </div>`;
+                </div>
+            </section>`;
     },
 
     authHTML() {
