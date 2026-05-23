@@ -78,9 +78,14 @@ async function main() {
     await page.waitForSelector(".book-card", { timeout: 15000 });
     await page.locator(".book-card").first().click();
     await page.waitForSelector("#reader-view.active", { timeout: 15000 });
-    await page.waitForSelector("#book-content", { timeout: 10000 });
+    const expectedText = "SmartRead installed desktop smoke sample";
+    await page.waitForFunction(
+      text => document.getElementById("book-content")?.innerText.includes(text),
+      expectedText,
+      { timeout: 10000 }
+    );
     const readerText = await page.locator("#book-content").innerText({ timeout: 10000 });
-    if (!readerText.includes("SmartRead installed desktop smoke sample")) {
+    if (!readerText.includes(expectedText)) {
       throw new Error("Installed app imported sample TXT but reader did not show its content");
     }
     if (consoleErrors.length) {

@@ -379,25 +379,32 @@ function waitForServer(url, timeoutMs) {
 }
 
 function startupUrl() {
+  const logoPath = path.join(resolveFrontendDir(), "images", "biaoge-logo.png");
+  const logoDataUrl = fs.existsSync(logoPath)
+    ? `data:image/png;base64,${fs.readFileSync(logoPath).toString("base64")}`
+    : "";
   const html = `<!doctype html>
 <html lang="zh-CN">
 <meta charset="utf-8">
-<title>SmartRead</title>
+<title>表哥智读 SmartRead</title>
 <style>
-  :root { color-scheme: light; font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif; }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f7f8fb; color: #17191f; }
-  main { width: min(520px, calc(100vw - 48px)); }
-  .brand { color: #0078d4; font-size: 18px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-  h1 { margin: 18px 0 12px; font-size: clamp(32px, 7vw, 56px); line-height: 1; }
-  p { margin: 0; color: #626a76; font-size: 18px; line-height: 1.55; }
-  .bar { margin-top: 30px; height: 4px; background: #dfe7f2; overflow: hidden; }
-  .bar::before { content: ""; display: block; width: 38%; height: 100%; background: #0078d4; animation: move 1.15s ease-in-out infinite; }
+  :root { color-scheme: light; font-family: "HarmonyOS Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #fff; color: #17120f; }
+  main { width: min(420px, calc(100vw - 48px)); text-align: center; }
+  .logo { display: block; width: 72px; height: 72px; margin: 0 auto 20px; object-fit: contain; }
+  .brand { color: #b20d23; font-size: 26px; font-weight: 700; line-height: 1.2; letter-spacing: 0; }
+  h1 { margin: 18px 0 8px; font-size: 20px; font-weight: 600; line-height: 1.35; letter-spacing: 0; }
+  p { margin: 0; color: #5e4934; font-size: 14px; line-height: 1.55; }
+  .bar { margin-top: 28px; height: 4px; border-radius: 999px; background: #f1e3e6; overflow: hidden; }
+  .bar::before { content: ""; display: block; width: 38%; height: 100%; border-radius: inherit; background: #b20d23; animation: move 1.15s ease-in-out infinite; }
   @keyframes move { 0% { transform: translateX(-100%); } 100% { transform: translateX(270%); } }
 </style>
 <main>
-  <div class="brand">SmartRead</div>
+  ${logoDataUrl ? `<img class="logo" src="${logoDataUrl}" alt="">` : ""}
+  <div class="brand">表哥智读</div>
   <h1>正在启动</h1>
-  <p>正在启动本地阅读服务，稍后进入书架。</p>
+  <p>正在进入本机书架</p>
   <div class="bar" aria-hidden="true"></div>
 </main>
 </html>`;

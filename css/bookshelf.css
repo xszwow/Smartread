@@ -25,57 +25,68 @@
 }
 
 #bookshelf-view.is-booting {
-    background:
-        radial-gradient(circle at 20% 14%, rgba(255,255,255,0.26), transparent 22%),
-        linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-deep) 100%);
+    background: #fff;
 }
 
 #bookshelf-view.is-booting .app-boot-splash {
     align-items: center;
-    color: #fff;
+    background: #fff;
+    color: var(--text-primary);
     display: grid;
     flex: 1;
     min-height: 100vh;
-    padding: 48px;
+    padding: 32px 24px;
 }
 
 #bookshelf-view.is-booting .app-boot-splash > div {
     margin: 0 auto;
-    width: min(520px, calc(100vw - 48px));
+    text-align: center;
+    width: min(420px, calc(100vw - 48px));
+}
+
+.boot-logo {
+    display: block;
+    height: 72px;
+    margin: 0 auto 20px;
+    object-fit: contain;
+    width: 72px;
 }
 
 .boot-brand {
-    color: rgba(255,255,255,0.86);
-    font-size: 18px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    color: var(--brand-primary);
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0;
 }
 
 .app-boot-splash h1 {
-    font-size: clamp(32px, 7vw, 56px);
-    font-weight: 800;
-    line-height: 1;
-    margin: 18px 0 12px;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.35;
+    margin: 18px 0 8px;
 }
 
 .app-boot-splash p {
-    color: rgba(255,255,255,0.78);
-    font-size: 18px;
+    color: var(--text-secondary);
+    font-size: 14px;
     line-height: 1.55;
     margin: 0;
 }
 
 .boot-progress {
-    background: rgba(255,255,255,0.22);
+    background: #f1e3e6;
+    border-radius: 999px;
     height: 4px;
-    margin-top: 30px;
+    margin-top: 28px;
     overflow: hidden;
 }
 
 .boot-progress::before {
     animation: boot-progress-move 1.15s ease-in-out infinite;
-    background: #fff;
+    background: var(--brand-primary);
+    border-radius: inherit;
     content: "";
     display: block;
     height: 100%;

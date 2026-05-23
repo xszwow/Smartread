@@ -19,7 +19,7 @@
     "workspace:clean:audit": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/workspace-clean-audit.cjs",
     "desktop:dev": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/prepare-vendor-assets.cjs && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\typescript\\bin\\tsc -p tsconfig.json && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\electron\\cli.js .",
     "desktop:pack:win": "set PATH=%CD%\\tools\\node-v24.15.0-win-x64;%PATH%&& set ELECTRON_BUILDER_CACHE=%CD%\\.cache\\electron-builder&& .\\tools\\node-v24.15.0-win-x64\\node.exe scripts\\prepare-vendor-assets.cjs && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\typescript\\bin\\tsc -p tsconfig.json && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\electron-builder\\cli.js --win nsis",
-    "desktop:pack:win:unsigned": "set PATH=%CD%\\tools\\node-v24.15.0-win-x64;%PATH%&& set ELECTRON_BUILDER_CACHE=%CD%\\.cache\\electron-builder&& .\\tools\\node-v24.15.0-win-x64\\node.exe scripts\\prepare-vendor-assets.cjs && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\typescript\\bin\\tsc -p tsconfig.json && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\electron-builder\\cli.js --win nsis --config.win.signAndEditExecutable=false --config.win.forceCodeSigning=false",
+    "desktop:pack:win:unsigned": "set PATH=%CD%\\tools\\node-v24.15.0-win-x64;%PATH%&& set ELECTRON_BUILDER_CACHE=%CD%\\.cache\\electron-builder&& set CSC_IDENTITY_AUTO_DISCOVERY=false&& .\\tools\\node-v24.15.0-win-x64\\node.exe scripts\\prepare-vendor-assets.cjs && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\typescript\\bin\\tsc -p tsconfig.json && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\electron-builder\\cli.js --win nsis --config.win.forceCodeSigning=false",
     "desktop:pack:win:dev-signed": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows-dev-signed.ps1",
     "desktop:pack:win:production-signed": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows-production-signed.ps1",
     "desktop:smoke": ".\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\typescript\\bin\\tsc -p tsconfig.json && .\\tools\\node-v24.15.0-win-x64\\node.exe scripts/desktop-smoke-test.cjs",
@@ -78,6 +78,7 @@
       "desktop/**/*",
       "dist/**/*",
       "css/**/*",
+      "images/**/*",
       "js/**/*",
       "index.css",
       "index.html",
@@ -89,19 +90,27 @@
       "index.css",
       "index.html",
       "css/**/*",
+      "images/**/*",
       "js/**/*"
     ],
     "directories": {
       "output": "release"
     },
+    "toolsets": {
+      "winCodeSign": "1.1.0"
+    },
+    "afterPack": "scripts/after-pack-windows-icon.cjs",
     "win": {
       "target": "nsis",
-      "signAndEditExecutable": true
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
     }
   }
 }
