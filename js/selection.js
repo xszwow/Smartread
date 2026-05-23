@@ -133,7 +133,7 @@ const Selection = {
             {
                 errorPrefix: '解读失败',
                 historyUser: `请解读："${text}"`,
-                speak: false
+                speak: true
             }
         );
     },

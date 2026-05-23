@@ -375,31 +375,76 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    position: relative;
     background: var(--pdf-stage-bg);
 }
 
 .pdf-page-stage {
     flex: 1;
     min-height: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    overflow: hidden;
+    overflow: auto;
     position: relative;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
     background: var(--pdf-stage-bg);
+}
+
+.pdf-page-surface {
+    align-items: center;
+    display: flex;
+    height: max-content;
+    justify-content: center;
+    min-height: 100%;
+    min-width: 100%;
+    padding: 16px;
+    width: max-content;
 }
 
 .pdf-page-canvas {
     display: block;
-    max-width: 100%;
-    max-height: 100%;
+    flex: none;
+    max-width: none;
+    max-height: none;
     background: var(--reader-page-bg);
     filter: var(--pdf-page-filter);
     mix-blend-mode: normal;
     opacity: 1;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
     transition: filter 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+}
+
+.pdf-page-stage.is-zoomed {
+    cursor: grab;
+    overscroll-behavior: contain;
+    touch-action: none;
+}
+
+.pdf-page-stage.is-zoomed.is-panning {
+    cursor: grabbing;
+    user-select: none;
+}
+
+.pdf-zoom-indicator {
+    background: rgba(23, 18, 15, 0.76);
+    border-radius: 999px;
+    color: #fff;
+    font-family: var(--font-ui);
+    font-size: 0.76rem;
+    font-weight: 700;
+    opacity: 0;
+    padding: 5px 10px;
+    pointer-events: none;
+    position: absolute;
+    right: 18px;
+    top: 18px;
+    transform: translateY(-4px);
+    transition: opacity 0.16s ease, transform 0.16s ease;
+    z-index: 4;
+}
+
+.pdf-zoom-indicator.is-visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .pdf-status {
@@ -411,6 +456,7 @@
     color: var(--text-secondary);
     background: var(--pdf-status-bg);
     font-size: 0.9rem;
+    z-index: 3;
 }
 
 .pdf-page-indicator {
@@ -1068,13 +1114,13 @@
         animation: mobile-caption-in 0.22s var(--ease);
     }
 
-    /* Large subtitle mode: Apple-style frosted glass overlay, scrollable */
+    /* Large subtitle mode: solid overlay, scrollable */
     .mobile-ai-subtitles.subtitle-large:not(.hidden) {
-        --mobile-subtitle-surface: rgba(242, 242, 247, 0.86);
+        --mobile-subtitle-surface: #f7f9fc;
         --mobile-subtitle-text: #1d1d1f;
-        --mobile-subtitle-muted: rgba(60, 60, 67, 0.58);
-        --mobile-subtitle-current-bg: rgba(255, 214, 10, 0.30);
-        --mobile-subtitle-current-border: rgba(255, 149, 0, 0.28);
+        --mobile-subtitle-muted: #667085;
+        --mobile-subtitle-current-bg: #fff3bf;
+        --mobile-subtitle-current-border: #e4c45f;
         --mobile-subtitle-current-shadow: rgba(255, 149, 0, 0.13);
         inset: 0;
         left: 0;
@@ -1087,8 +1133,8 @@
         border-radius: 0;
         background: var(--mobile-subtitle-surface);
         color: var(--mobile-subtitle-text);
-        backdrop-filter: blur(40px) saturate(180%);
-        -webkit-backdrop-filter: blur(40px) saturate(180%);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
         display: block;
         padding: 0;
         transform: none;
@@ -1101,11 +1147,11 @@
     }
 
     .theme-dark .mobile-ai-subtitles.subtitle-large:not(.hidden) {
-        --mobile-subtitle-surface: rgba(28, 28, 30, 0.84);
-        --mobile-subtitle-text: rgba(255, 255, 255, 0.94);
-        --mobile-subtitle-muted: rgba(235, 235, 245, 0.54);
-        --mobile-subtitle-current-bg: rgba(255, 214, 10, 0.18);
-        --mobile-subtitle-current-border: rgba(255, 214, 10, 0.28);
+        --mobile-subtitle-surface: #1c1c1e;
+        --mobile-subtitle-text: #ffffff;
+        --mobile-subtitle-muted: #a1a1aa;
+        --mobile-subtitle-current-bg: #3a3010;
+        --mobile-subtitle-current-border: #8f741f;
         --mobile-subtitle-current-shadow: rgba(255, 214, 10, 0.10);
     }
 
@@ -1200,7 +1246,7 @@
     }
 
     .mobile-ai-subtitles.is-paused {
-        opacity: 0.82;
+        opacity: 1;
     }
 
     .mobile-ai-subtitle-text {

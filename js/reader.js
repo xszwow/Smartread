@@ -13,6 +13,15 @@ const Reader = {
     pdfRenderId: 0,
     pdfIsRendering: false,
     pdfRenderedPage: null,
+    pdfZoom: 1,
+    pdfMinZoom: 1,
+    pdfMaxZoom: 4,
+    pdfFitDisplaySize: null,
+    pdfZoomRenderTimer: null,
+    pdfZoomIndicatorTimer: null,
+    pdfPinchState: null,
+    pdfPanState: null,
+    pdfGestureCleanup: null,
     currentLocation: null,
     _tocCache: null,
     isNavigating: false,
@@ -55,6 +64,7 @@ const Reader = {
             this.layoutRedisplayTimer = null;
         }
         this.lastLayoutSize = null;
+        this.resetPdfZoomState();
 
         // 清理旧的 EPUB 实例
         if (this.epubBook) {
@@ -572,11 +582,15 @@ const Reader = {
         container.innerHTML = `
             <div class="pdf-reader">
                 <div id="pdf-page-stage" class="pdf-page-stage">
-                    <canvas id="pdf-page-canvas" class="pdf-page-canvas"></canvas>
+                    <div class="pdf-page-surface">
+                        <canvas id="pdf-page-canvas" class="pdf-page-canvas"></canvas>
+                    </div>
                     <div id="pdf-loading" class="pdf-status">正在加载 PDF...</div>
                 </div>
+                <div id="pdf-zoom-indicator" class="pdf-zoom-indicator" aria-live="polite">100%</div>
                 <div id="pdf-page-indicator" class="pdf-page-indicator"></div>
             </div>`;
+        this.bindPdfZoomGestures();
 
         try {
             const pdfjs = await this.ensurePdfJs();
@@ -614,8 +628,236 @@ const Reader = {
         return new Blob([data], { type: 'application/pdf' }).arrayBuffer();
     },
 
-    async renderPdfPage() {
+    resetPdfZoomState() {
+        clearTimeout(this.pdfZoomRenderTimer);
+        clearTimeout(this.pdfZoomIndicatorTimer);
+        this.pdfZoomRenderTimer = null;
+        this.pdfZoomIndicatorTimer = null;
+        this.pdfGestureCleanup?.();
+        this.pdfGestureCleanup = null;
+        this.pdfPinchState = null;
+        this.pdfPanState = null;
+        this.pdfZoom = 1;
+        this.pdfFitDisplaySize = null;
+    },
+
+    bindPdfZoomGestures() {
+        const stage = document.getElementById('pdf-page-stage');
+        if (!stage) return;
+
+        const onWheel = event => this.handlePdfZoomWheel(event);
+        const onTouchStart = event => this.handlePdfPinchStart(event);
+        const onTouchMove = event => this.handlePdfPinchMove(event);
+        const onTouchEnd = event => this.handlePdfPinchEnd(event);
+        const onPointerDown = event => this.handlePdfPanPointerDown(event);
+        const onPointerMove = event => this.handlePdfPanPointerMove(event);
+        const onPointerUp = event => this.handlePdfPanPointerEnd(event);
+        stage.addEventListener('wheel', onWheel, { passive: false });
+        stage.addEventListener('touchstart', onTouchStart, { passive: false });
+        stage.addEventListener('touchmove', onTouchMove, { passive: false });
+        stage.addEventListener('touchend', onTouchEnd, { passive: false });
+        stage.addEventListener('touchcancel', onTouchEnd, { passive: false });
+        stage.addEventListener('pointerdown', onPointerDown);
+        stage.addEventListener('pointermove', onPointerMove);
+        stage.addEventListener('pointerup', onPointerUp);
+        stage.addEventListener('pointercancel', onPointerUp);
+        this.pdfGestureCleanup = () => {
+            stage.removeEventListener('wheel', onWheel);
+            stage.removeEventListener('touchstart', onTouchStart);
+            stage.removeEventListener('touchmove', onTouchMove);
+            stage.removeEventListener('touchend', onTouchEnd);
+            stage.removeEventListener('touchcancel', onTouchEnd);
+            stage.removeEventListener('pointerdown', onPointerDown);
+            stage.removeEventListener('pointermove', onPointerMove);
+            stage.removeEventListener('pointerup', onPointerUp);
+            stage.removeEventListener('pointercancel', onPointerUp);
+        };
+    },
+
+    canZoomPdf() {
+        return this.book?.type === 'pdf'
+            && !!this.pdfDoc
+            && !(typeof Magnifier !== 'undefined' && Magnifier.enabled);
+    },
+
+    handlePdfZoomWheel(event) {
+        if (!event.ctrlKey || !this.canZoomPdf()) return;
+        event.preventDefault();
+        const factor = Math.exp(-Math.max(-160, Math.min(160, event.deltaY)) * 0.004);
+        this.setPdfZoom(this.pdfZoom * factor, {
+            clientX: event.clientX,
+            clientY: event.clientY
+        });
+    },
+
+    handlePdfPinchStart(event) {
+        if (!this.canZoomPdf()) return;
+        if (event.touches.length === 2) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.cancelPdfPan();
+            this.pdfPinchState = this.getPdfPinchState(event.touches, this.pdfZoom);
+            return;
+        }
+        if (event.touches.length === 1 && this.isPdfZoomed()) {
+            this.beginPdfPan(event.touches[0], 'touch');
+        }
+    },
+
+    handlePdfPinchMove(event) {
+        if (!this.canZoomPdf()) return;
+        if (this.pdfPinchState && event.touches.length === 2) {
+            event.preventDefault();
+            event.stopPropagation();
+            const current = this.getPdfPinchState(event.touches, this.pdfZoom);
+            const ratio = current.distance / Math.max(1, this.pdfPinchState.distance);
+            this.setPdfZoom(this.pdfPinchState.zoom * ratio, current.center);
+            return;
+        }
+        if (event.touches.length === 1 && this.pdfPanState?.type === 'touch') {
+            event.preventDefault();
+            event.stopPropagation();
+            this.movePdfPan(event.touches[0]);
+        }
+    },
+
+    handlePdfPinchEnd(event) {
+        if (this.pdfPinchState && event.touches.length === 2) {
+            this.pdfPinchState = this.getPdfPinchState(event.touches, this.pdfZoom);
+            return;
+        }
+        if (this.pdfPinchState) {
+            this.pdfPinchState = null;
+            this.schedulePdfZoomRender(0);
+            if (event.touches.length === 1 && this.isPdfZoomed()) {
+                this.beginPdfPan(event.touches[0], 'touch');
+                return;
+            }
+        }
+        if (!event.touches.length && this.pdfPanState?.type === 'touch') {
+            this.cancelPdfPan();
+        }
+    },
+
+    getPdfPinchState(touches, zoom) {
+        const first = touches[0];
+        const second = touches[1];
+        return {
+            distance: Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY),
+            center: {
+                clientX: (first.clientX + second.clientX) / 2,
+                clientY: (first.clientY + second.clientY) / 2
+            },
+            zoom
+        };
+    },
+
+    setPdfZoom(value, anchor = null) {
+        const next = Math.round(Math.min(this.pdfMaxZoom, Math.max(this.pdfMinZoom, Number(value) || 1)) * 100) / 100;
+        if (Math.abs(next - this.pdfZoom) < 0.005) return;
+        this.pdfZoom = next;
+        this.applyPdfPreviewZoom(anchor);
+        this.showPdfZoomIndicator();
+        this.schedulePdfZoomRender();
+    },
+
+    isPdfZoomed() {
+        return this.pdfZoom > this.pdfMinZoom + 0.005;
+    },
+
+    handlePdfPanPointerDown(event) {
+        if (event.pointerType === 'touch' || event.button !== 0 || !this.canZoomPdf() || !this.isPdfZoomed()) return;
+        if (event.target.closest?.('button, input, textarea, a, [contenteditable="true"]')) return;
+        event.preventDefault();
+        this.beginPdfPan(event, event.pointerType || 'mouse', event.pointerId);
+        try { event.currentTarget.setPointerCapture(event.pointerId); } catch { }
+    },
+
+    handlePdfPanPointerMove(event) {
+        if (event.pointerType === 'touch' || this.pdfPanState?.pointerId !== event.pointerId) return;
+        event.preventDefault();
+        this.movePdfPan(event);
+    },
+
+    handlePdfPanPointerEnd(event) {
+        if (event.pointerType === 'touch' || this.pdfPanState?.pointerId !== event.pointerId) return;
+        try { event.currentTarget.releasePointerCapture(event.pointerId); } catch { }
+        this.cancelPdfPan();
+    },
+
+    beginPdfPan(point, type, pointerId = null) {
+        const stage = document.getElementById('pdf-page-stage');
+        if (!stage) return;
+        this.pdfPanState = {
+            type,
+            pointerId,
+            x: point.clientX,
+            y: point.clientY,
+            scrollLeft: stage.scrollLeft,
+            scrollTop: stage.scrollTop
+        };
+        stage.classList.add('is-panning');
+    },
+
+    movePdfPan(point) {
+        const stage = document.getElementById('pdf-page-stage');
+        const state = this.pdfPanState;
+        if (!stage || !state) return;
+        stage.scrollLeft = state.scrollLeft + state.x - point.clientX;
+        stage.scrollTop = state.scrollTop + state.y - point.clientY;
+    },
+
+    cancelPdfPan() {
+        this.pdfPanState = null;
+        document.getElementById('pdf-page-stage')?.classList.remove('is-panning');
+    },
+
+    applyPdfPreviewZoom(anchor = null) {
+        const stage = document.getElementById('pdf-page-stage');
+        const canvas = document.getElementById('pdf-page-canvas');
+        if (!stage || !canvas || !this.pdfFitDisplaySize) return;
+
+        const stageRect = stage.getBoundingClientRect();
+        const oldRect = canvas.getBoundingClientRect();
+        const focus = anchor || {
+            clientX: stageRect.left + stage.clientWidth / 2,
+            clientY: stageRect.top + stage.clientHeight / 2
+        };
+        const focusX = Math.max(0, Math.min(1, (focus.clientX - oldRect.left) / Math.max(1, oldRect.width)));
+        const focusY = Math.max(0, Math.min(1, (focus.clientY - oldRect.top) / Math.max(1, oldRect.height)));
+
+        canvas.style.width = Math.max(1, Math.round(this.pdfFitDisplaySize.width * this.pdfZoom)) + 'px';
+        canvas.style.height = Math.max(1, Math.round(this.pdfFitDisplaySize.height * this.pdfZoom)) + 'px';
+        stage.classList.toggle('is-zoomed', this.pdfZoom > this.pdfMinZoom + 0.005);
+
+        const nextRect = canvas.getBoundingClientRect();
+        stage.scrollLeft += nextRect.left + nextRect.width * focusX - focus.clientX;
+        stage.scrollTop += nextRect.top + nextRect.height * focusY - focus.clientY;
+    },
+
+    showPdfZoomIndicator() {
+        const indicator = document.getElementById('pdf-zoom-indicator');
+        if (!indicator) return;
+        indicator.textContent = Math.round(this.pdfZoom * 100) + '%';
+        indicator.classList.add('is-visible');
+        clearTimeout(this.pdfZoomIndicatorTimer);
+        this.pdfZoomIndicatorTimer = setTimeout(() => {
+            indicator.classList.remove('is-visible');
+        }, 900);
+    },
+
+    schedulePdfZoomRender(delay = 100) {
+        clearTimeout(this.pdfZoomRenderTimer);
+        this.pdfZoomRenderTimer = setTimeout(() => {
+            this.pdfZoomRenderTimer = null;
+            if (this.book?.type !== 'pdf' || !this.pdfDoc) return;
+            this.renderPdfPage({ showLoading: false }).catch(err => console.warn('PDF zoom render failed:', err));
+        }, delay);
+    },
+
+    async renderPdfPage(options = {}) {
         if (!this.pdfDoc) return;
+        const showLoading = options.showLoading !== false;
         const renderId = ++this.pdfRenderId;
         const pageIndex = this.currentPage;
         const canvas = document.getElementById('pdf-page-canvas');
@@ -635,7 +877,7 @@ const Reader = {
             this.pdfRenderTask = null;
         }
 
-        if (loading) {
+        if (loading && showLoading) {
             loading.textContent = '正在渲染页面...';
             loading.classList.remove('hidden');
         }
@@ -648,28 +890,45 @@ const Reader = {
             const pageViewport = page.getViewport({ scale: 1 });
             const availableWidth = Math.max(320, (stageRect.width || window.innerWidth) - 32);
             const availableHeight = Math.max(320, (stageRect.height || window.innerHeight) - 32);
+            this.lastLayoutSize = `pdf:${Math.floor(stage.clientWidth)}x${Math.floor(stage.clientHeight)}`;
             const fitScale = Math.min(
                 availableWidth / pageViewport.width,
                 availableHeight / pageViewport.height
             );
             const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-            const viewport = page.getViewport({ scale: Math.max(0.1, fitScale) * pixelRatio });
-            const displayWidth = Math.max(1, Math.floor(viewport.width / pixelRatio));
-            const displayHeight = Math.max(1, Math.floor(viewport.height / pixelRatio));
+            const baseDisplayWidth = Math.max(1, Math.floor(pageViewport.width * Math.max(0.1, fitScale)));
+            const baseDisplayHeight = Math.max(1, Math.floor(pageViewport.height * Math.max(0.1, fitScale)));
+            this.pdfFitDisplaySize = { width: baseDisplayWidth, height: baseDisplayHeight };
+            const viewport = page.getViewport({ scale: Math.max(0.1, fitScale) * this.pdfZoom * pixelRatio });
+            const displayWidth = Math.max(1, Math.floor(baseDisplayWidth * this.pdfZoom));
+            const displayHeight = Math.max(1, Math.floor(baseDisplayHeight * this.pdfZoom));
+            stage.classList.toggle('is-zoomed', this.pdfZoom > this.pdfMinZoom + 0.005);
 
-            canvas.width = Math.max(1, Math.floor(viewport.width));
-            canvas.height = Math.max(1, Math.floor(viewport.height));
-            canvas.style.width = displayWidth + 'px';
-            canvas.style.height = displayHeight + 'px';
+            const renderCanvas = showLoading ? canvas : document.createElement('canvas');
+            renderCanvas.width = Math.max(1, Math.floor(viewport.width));
+            renderCanvas.height = Math.max(1, Math.floor(viewport.height));
+            if (showLoading) {
+                canvas.style.width = displayWidth + 'px';
+                canvas.style.height = displayHeight + 'px';
+            }
 
-            const ctx = canvas.getContext('2d', { alpha: false });
+            const ctx = renderCanvas.getContext('2d', { alpha: false });
             ctx.fillStyle = '#fff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, renderCanvas.width, renderCanvas.height);
 
             this.pdfRenderTask = page.render({ canvasContext: ctx, viewport });
             await this.pdfRenderTask.promise;
             if (renderId !== this.pdfRenderId) return;
             this.pdfRenderTask = null;
+
+            if (!showLoading) {
+                canvas.width = renderCanvas.width;
+                canvas.height = renderCanvas.height;
+                canvas.style.width = displayWidth + 'px';
+                canvas.style.height = displayHeight + 'px';
+                const visibleContext = canvas.getContext('2d', { alpha: false });
+                visibleContext.drawImage(renderCanvas, 0, 0);
+            }
 
             if (loading) loading.classList.add('hidden');
             if (indicator) {
@@ -1037,6 +1296,16 @@ const Reader = {
             } catch (err) {
                 console.warn('EPUB resize failed:', err);
             }
+            return;
+        }
+
+        if (this.book?.type === 'pdf' && this.pdfDoc) {
+            const stage = document.getElementById('pdf-page-stage');
+            if (!stage) return;
+            const sizeKey = `pdf:${Math.floor(stage.clientWidth)}x${Math.floor(stage.clientHeight)}`;
+            if (!force && this.lastLayoutSize === sizeKey) return;
+            this.lastLayoutSize = sizeKey;
+            this.schedulePdfZoomRender(60);
         }
     },
 

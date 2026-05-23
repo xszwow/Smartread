@@ -17,7 +17,7 @@ const Chat = {
         }, {
             errorPrefix: '发送失败',
             historyUser: text,
-            speak: false
+            speak: true
         });
     },
 
