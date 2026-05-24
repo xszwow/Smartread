@@ -145,6 +145,16 @@ function timestamp() {
 }
 
 function findInstalledChrome() {
+  const browsers = [
+    path.join(process.env.PROGRAMFILES || "", "Google", "Chrome", "Application", "chrome.exe"),
+    path.join(process.env["PROGRAMFILES(X86)"] || "", "Google", "Chrome", "Application", "chrome.exe"),
+    path.join(process.env.LOCALAPPDATA || "", "Google", "Chrome", "Application", "chrome.exe"),
+    path.join(process.env.PROGRAMFILES || "", "Microsoft", "Edge", "Application", "msedge.exe"),
+    path.join(process.env["PROGRAMFILES(X86)"] || "", "Microsoft", "Edge", "Application", "msedge.exe"),
+    path.join(process.env.LOCALAPPDATA || "", "Microsoft", "Edge", "Application", "msedge.exe")
+  ];
+  const installed = browsers.find(browserPath => fs.existsSync(browserPath));
+  if (installed) return installed;
   const candidates = [
     path.join(process.env.LOCALAPPDATA || "", "ms-playwright"),
     path.join(process.env.USERPROFILE || "", "AppData", "Local", "ms-playwright")

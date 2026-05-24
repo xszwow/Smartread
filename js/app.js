@@ -12,8 +12,15 @@ const App = {
     popupPanelNames: ['tts', 'theme', 'font', 'settings', 'notes', 'map', 'toc'],
     activePopupPanel: null,
     lastPanelTrigger: null,
+    desktopPointer: null,
+    desktopPdfZoomEventAt: 0,
+    desktopZoomCleanup: null,
+    desktopPdfZoomRoutingEnabled: null,
 
     async init() {
+        this.syncRuntimeClass();
+        this.bindDesktopZoomRouting();
+        this.syncDesktopPdfZoomRouting();
         this.mobileSubtitleMode = this.loadMobileSubtitlesSetting();
         await Bookshelf.init();
         await AIConfig.refresh();
@@ -72,6 +79,7 @@ const App = {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         document.getElementById(name + '-view').classList.add('active');
         if (name !== 'reader') {
+            this.setDesktopPdfZoomRoutingEnabled(false);
             this.setMobileReaderChromeVisible(false);
             this.closeMobileMore();
         }
@@ -79,10 +87,11 @@ const App = {
 
     async openBook(bookId) {
         if (!Bookshelf.user) {
-            Bookshelf.requireSmartReadSignedIn?.('请先登录 SmartRead，再阅读。');
+            Bookshelf.requireSmartReadSignedIn?.(Bookshelf.authRequiredMessage?.('请先登录 SmartRead，再阅读。') || '请先登录 SmartRead，再阅读。');
             return;
         }
         this.aiReadRequestId++;
+        this.setDesktopPdfZoomRoutingEnabled(false);
         TTS.stop();
         Magnifier.disable();
         history.pushState({ view: 'reader', bookId }, '');
@@ -93,6 +102,7 @@ const App = {
         document.getElementById('ai-tts-bar')?.classList.add('hidden');
         this.syncDefaultReaderPanels();
         await Reader.open(bookId);
+        this.syncDesktopPdfZoomRouting();
         this.syncMobileReaderChrome();
         this.updateMobileReaderMeta();
         this.syncReaderLayout();
@@ -102,6 +112,8 @@ const App = {
         document.getElementById('btn-prev').addEventListener('click', () => Reader.prevPage());
         document.getElementById('btn-next').addEventListener('click', () => Reader.nextPage());
         document.addEventListener('keydown', (e) => this.handleGlobalKeydown(e));
+        document.addEventListener('wheel', (e) => this.handleDesktopZoomWheel(e), { capture: true, passive: false });
+        document.addEventListener('pointermove', (e) => this.trackDesktopPointer(e), { capture: true, passive: true });
         document.addEventListener('keydown', (e) => {
             if (!document.getElementById('reader-view').classList.contains('active')) return;
             if (this.isTypingTarget(e.target)) return;
@@ -173,7 +185,7 @@ const App = {
                     <button class="theme-btn" type="button" onclick="App.setTheme('')">浅色</button>
                     <button class="theme-btn" type="button" onclick="App.setTheme('theme-sepia')">护眼</button>
                 </div></div>
-            <div class="control-group"><label>字号</label></div>
+            <div class="control-group"><label id="reader-display-size-label">字号</label></div>
             <div class="font-size-controls">
                 <button class="btn btn-icon" type="button" onclick="Reader.changeFontSize(-2)">A-</button>
                 <span id="font-size-display">22px</span>
@@ -291,6 +303,8 @@ const App = {
     },
 
     handleGlobalKeydown(event) {
+        if (this.handleDesktopPdfZoomShortcut(event)) return;
+
         if (event.key === 'Escape') {
             if (this.activePopupPanel) {
                 event.preventDefault();
@@ -318,6 +332,94 @@ const App = {
         if (event.key === 'Tab' && this.activePopupPanel) {
             this.trapFocusInPanel(event, this.activePopupPanel);
         }
+    },
+
+    handleDesktopPdfZoomShortcut(event) {
+        if (!this.isDesktopVisualZoomReading() || this.isTypingTarget(event.target) || !(event.ctrlKey || event.metaKey)) return false;
+        let nextZoom = null;
+        const currentZoom = Reader.getDesktopVisualZoomValue();
+        const step = Reader.getDesktopVisualZoomStep();
+        if (event.key === '+' || event.key === '=') {
+            nextZoom = currentZoom + step;
+        } else if (event.key === '-' || event.key === '_') {
+            nextZoom = currentZoom - step;
+        } else if (event.key === '0') {
+            nextZoom = Reader.getDesktopVisualMinZoom();
+        }
+        if (nextZoom == null) return false;
+
+        event.preventDefault();
+        event.stopPropagation();
+        Reader.setDesktopVisualZoom(nextZoom, this.getDesktopVisualZoomAnchor());
+        return true;
+    },
+
+    handleDesktopZoomWheel(event) {
+        if (!this.isDesktopVisualZoomReading() || !event.ctrlKey) return false;
+        const stage = this.getDesktopVisualZoomStage();
+        if (!stage?.contains(event.target)) return false;
+        event.preventDefault();
+        event.stopPropagation();
+        if (performance.now() < Math.max(Reader.pdfNativeZoomBlockedUntil || 0, Reader.epubNativeZoomBlockedUntil || 0)) return true;
+        this.desktopPdfZoomEventAt = performance.now();
+        if (this.isDesktopPdfReading()) {
+            Reader.handlePdfZoomWheel(event);
+        } else {
+            const factor = Math.exp(-Math.max(-160, Math.min(160, event.deltaY)) * 0.004);
+            Reader.setDesktopEpubZoom(Reader.epubZoom * factor, { clientX: event.clientX, clientY: event.clientY });
+        }
+        return true;
+    },
+
+    bindDesktopZoomRouting() {
+        this.desktopZoomCleanup?.();
+        this.desktopZoomCleanup = null;
+        if (!this.isDesktopRuntime() || typeof window.SmartReadDesktop?.onNativeZoomRequested !== 'function') return;
+        this.desktopZoomCleanup = window.SmartReadDesktop.onNativeZoomRequested(direction => {
+            this.handleDesktopNativeZoom(direction);
+        });
+    },
+
+    trackDesktopPointer(event) {
+        if (!this.isDesktopRuntime()) return;
+        this.desktopPointer = { clientX: event.clientX, clientY: event.clientY };
+    },
+
+    getDesktopVisualZoomStage() {
+        return this.isDesktopPdfReading()
+            ? document.getElementById('pdf-page-stage')
+            : Reader.getDesktopEpubStage?.();
+    },
+
+    getDesktopVisualZoomAnchor() {
+        const stage = this.getDesktopVisualZoomStage();
+        const point = this.desktopPointer;
+        if (!stage) return null;
+        if (!point) {
+            return this.isDesktopPdfReading()
+                ? Reader.getPdfViewportCenter()
+                : Reader.getDesktopEpubViewportCenter();
+        }
+        const rect = stage.getBoundingClientRect();
+        if (
+            point.clientX < rect.left || point.clientX > rect.right ||
+            point.clientY < rect.top || point.clientY > rect.bottom
+        ) return null;
+        return point;
+    },
+
+    handleDesktopNativeZoom(direction) {
+        if (!this.isDesktopRuntime() || performance.now() - this.desktopPdfZoomEventAt < 100) return;
+        if (!this.isDesktopVisualZoomReading()) return;
+        if (this.isDesktopPdfReading() && !Reader.canZoomPdf()) return;
+        if (this.isDesktopEpubImageReading() && !Reader.canZoomDesktopEpubImagePage()) return;
+        if (performance.now() < Math.max(Reader.pdfNativeZoomBlockedUntil || 0, Reader.epubNativeZoomBlockedUntil || 0)) return;
+        const anchor = this.getDesktopVisualZoomAnchor();
+        if (!anchor) return;
+        const delta = direction === 'in' ? Reader.getDesktopVisualZoomStep() : direction === 'out' ? -Reader.getDesktopVisualZoomStep() : 0;
+        if (!delta) return;
+        this.desktopPdfZoomEventAt = performance.now();
+        Reader.setDesktopVisualZoom(Reader.getDesktopVisualZoomValue() + delta, anchor);
     },
 
     trapFocusInPanel(event, panel) {
@@ -412,6 +514,43 @@ const App = {
 
     isSmallScreen() {
         return window.matchMedia?.('(max-width: 1024px)').matches || window.innerWidth <= 1024;
+    },
+
+    isDesktopRuntime() {
+        return window.SmartReadDesktop?.appMode === 'desktop';
+    },
+
+    isDesktopPdfReading() {
+        return this.isDesktopRuntime()
+            && !!document.getElementById('reader-view')?.classList.contains('active')
+            && Reader.book?.type === 'pdf'
+            && !!Reader.pdfDoc;
+    },
+
+    isDesktopEpubImageReading() {
+        return this.isDesktopRuntime()
+            && !!document.getElementById('reader-view')?.classList.contains('active')
+            && Reader.book?.type === 'epub'
+            && Reader.isDesktopEpubImagePageActive?.();
+    },
+
+    isDesktopVisualZoomReading() {
+        return this.isDesktopPdfReading() || this.isDesktopEpubImageReading();
+    },
+
+    setDesktopPdfZoomRoutingEnabled(enabled) {
+        const next = this.isDesktopRuntime() && enabled === true;
+        if (this.desktopPdfZoomRoutingEnabled === next) return;
+        this.desktopPdfZoomRoutingEnabled = next;
+        window.SmartReadDesktop?.setPdfZoomRoutingEnabled?.(next);
+    },
+
+    syncDesktopPdfZoomRouting() {
+        this.setDesktopPdfZoomRoutingEnabled(this.isDesktopVisualZoomReading());
+    },
+
+    syncRuntimeClass() {
+        document.documentElement.classList.toggle('desktop-runtime', this.isDesktopRuntime());
     },
 
     toggleMobileMenu() {
@@ -1440,7 +1579,7 @@ const App = {
 
     async saveSettings() {
         if (!Bookshelf.user) {
-            Bookshelf.requireSmartReadSignedIn?.('请先登录 SmartRead，再配置 AI API。');
+            Bookshelf.requireSmartReadSignedIn?.(Bookshelf.authRequiredMessage?.('请先登录 SmartRead，再配置 AI API。') || '请先登录 SmartRead，再配置 AI API。');
             return;
         }
         try {

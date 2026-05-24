@@ -70,8 +70,11 @@ async function main() {
     if (!/智读|SmartRead/.test(bodyText)) {
       throw new Error("Installed app did not render SmartRead UI");
     }
-    if (/获取验证码|cloud-auth-email/.test(bodyText)) {
+    if (/登录表哥智读|获取验证码|cloud-auth-email|6 位验证码/.test(bodyText)) {
       throw new Error("Installed desktop app should enter local shelf without email-code login");
+    }
+    if (/local-desktop@smartread\.local/.test(bodyText)) {
+      throw new Error("Installed desktop app should not expose the internal local desktop account");
     }
 
     await importSampleBook(page, samplePath, outDir);

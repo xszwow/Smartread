@@ -29,7 +29,8 @@ const Magnifier = {
     scrollRaf: null,
     suppressDblClickUntil: 0,
     cleanupToken: 0,
-
+    desktopPdfPointers: new Set(),
+    desktopPdfHadMultiTouch: false,
     init() {
         this.view = document.getElementById('reader-view');
         this.reader = document.getElementById('reader-content');
@@ -77,6 +78,11 @@ const Magnifier = {
     },
 
     toggle() {
+        if (this.isDesktopVisualMode()) {
+            if (this.enabled) this.disable();
+            Reader.toggleDesktopVisualZoom(this.getDesktopVisualCenter());
+            return;
+        }
         if (this.enabled) this.disable();
         else this.enableAtCenter();
     },
@@ -131,12 +137,27 @@ const Magnifier = {
         this.activePointer = null;
         this.lastOpenTap = null;
         this.lastActiveTap = null;
+        this.desktopPdfPointers.clear();
+        this.desktopPdfHadMultiTouch = false;
         requestAnimationFrame(() => setTimeout(() => {
             if (!this.enabled && cleanupToken === this.cleanupToken) this.clearClone();
         }, 0));
     },
 
     handleReaderPointerDown(e) {
+        if (this.isDesktopVisualTarget(e.target)) {
+            this.desktopPdfPointers.add(e.pointerId);
+            if (this.desktopPdfPointers.size > 1) {
+                this.desktopPdfHadMultiTouch = true;
+                this.lastOpenTap = null;
+                this.openPointer = null;
+                return;
+            }
+            if (this.desktopPdfHadMultiTouch) return;
+            const point = this.getEventPoint(e);
+            this.openPointer = this.createPointerState(e, point);
+            return;
+        }
         if (!this.canUseReaderGesture(e)) return;
         const point = this.getEventPoint(e);
         if (this.isDoubleTap(this.lastOpenTap, point)) {
@@ -156,12 +177,40 @@ const Magnifier = {
     },
 
     handleReaderPointerUp(e) {
+        if (this.isDesktopVisualMode() && this.desktopPdfPointers.has(e.pointerId)) {
+            this.desktopPdfPointers.delete(e.pointerId);
+            if (this.desktopPdfHadMultiTouch) {
+                this.openPointer = null;
+                this.lastOpenTap = null;
+                if (!this.desktopPdfPointers.size) this.desktopPdfHadMultiTouch = false;
+                return;
+            }
+            const point = this.finishTapPointer(this.openPointer, e);
+            this.openPointer = null;
+            if (!point) {
+                this.lastOpenTap = null;
+                return;
+            }
+            if (this.isDoubleTap(this.lastOpenTap, point)) {
+                this.lastOpenTap = null;
+                this.suppressDblClickReplay();
+                Reader.toggleDesktopVisualZoom({ clientX: e.clientX, clientY: e.clientY });
+                return;
+            }
+            this.lastOpenTap = point;
+            return;
+        }
         const point = this.finishTapPointer(this.openPointer, e);
         this.openPointer = null;
         if (point) this.lastOpenTap = point;
     },
 
     cancelOpenPointer(e) {
+        if (this.isDesktopVisualMode() && e && this.desktopPdfPointers.has(e.pointerId)) {
+            this.desktopPdfPointers.delete(e.pointerId);
+            if (!this.desktopPdfPointers.size) this.desktopPdfHadMultiTouch = false;
+            this.lastOpenTap = null;
+        }
         if (!e || this.samePointer(this.openPointer, e)) this.openPointer = null;
     },
 
@@ -170,6 +219,13 @@ const Magnifier = {
         if (this.shouldSuppressDblClick()) {
             e.preventDefault();
             e.stopPropagation();
+            return;
+        }
+        if (this.isDesktopVisualTarget(e.target)) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.suppressDblClickReplay();
+            Reader.toggleDesktopVisualZoom({ clientX: e.clientX, clientY: e.clientY });
             return;
         }
         if (this.enabled || this.isIgnoredTarget(e.target)) return;
@@ -295,6 +351,31 @@ const Magnifier = {
             clientY: e.clientY,
             preventDefault: () => e.preventDefault?.()
         };
+    },
+
+    isDesktopPdfMode() {
+        return this.isDesktopVisualMode() && Reader.book?.type === 'pdf';
+    },
+
+    isDesktopVisualMode() {
+        return window.SmartReadDesktop?.appMode === 'desktop'
+            && typeof Reader !== 'undefined'
+            && Reader.isDesktopVisualZoomReading?.();
+    },
+
+    isDesktopPdfTarget(target) {
+        return this.isDesktopVisualTarget(target) && Reader.book?.type === 'pdf';
+    },
+
+    isDesktopVisualTarget(target) {
+        if (!this.isDesktopVisualMode()) return false;
+        if (Reader.book?.type === 'pdf') return !!target?.closest?.('#pdf-page-stage');
+        return !!target?.closest?.('#book-content.book-epub, .epub-container, .epub-view');
+    },
+
+    getDesktopVisualCenter() {
+        if (Reader.book?.type === 'epub') return Reader.getDesktopEpubViewportCenter();
+        return Reader.getPdfViewportCenter();
     },
 
     moveTo(e) {
@@ -424,6 +505,8 @@ const Magnifier = {
     handlePageChange() {
         this.lastOpenTap = null;
         this.lastActiveTap = null;
+        this.desktopPdfPointers.clear();
+        this.desktopPdfHadMultiTouch = false;
         if (!this.enabled) return;
         this.hideLens();
         this.scheduleRefresh();

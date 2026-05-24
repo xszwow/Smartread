@@ -63,7 +63,7 @@ async function main() {
     if (state.userEmail !== "local-device@smartread.local") failures.push(`unexpected native user: ${state.userEmail}`);
     if (!state.classes.includes("is-authenticated")) failures.push(`bookshelf is not authenticated: ${state.classes}`);
     if (state.classes.includes("is-logged-out")) failures.push(`bookshelf is still logged out: ${state.classes}`);
-    if (!/本机书架|导入本地书/.test(state.bodyText)) failures.push("native home text did not render");
+    if (!/本机书架|我的书架|导入\s*本地书/.test(state.bodyText)) failures.push("native home text did not render");
     if (/获取验证码|登录 SmartRead/.test(state.bodyText)) failures.push("native home rendered SmartRead login copy");
     failures.push(...networkFailures, ...consoleErrors.filter(message => /\/api\/|ERR_FAILED|CORS/i.test(message)));
 
@@ -92,6 +92,16 @@ function timestamp() {
 }
 
 function findInstalledChrome() {
+  const browsers = [
+    path.join(process.env.PROGRAMFILES || "", "Google", "Chrome", "Application", "chrome.exe"),
+    path.join(process.env["PROGRAMFILES(X86)"] || "", "Google", "Chrome", "Application", "chrome.exe"),
+    path.join(process.env.LOCALAPPDATA || "", "Google", "Chrome", "Application", "chrome.exe"),
+    path.join(process.env.PROGRAMFILES || "", "Microsoft", "Edge", "Application", "msedge.exe"),
+    path.join(process.env["PROGRAMFILES(X86)"] || "", "Microsoft", "Edge", "Application", "msedge.exe"),
+    path.join(process.env.LOCALAPPDATA || "", "Microsoft", "Edge", "Application", "msedge.exe")
+  ];
+  const installed = browsers.find(browserPath => fs.existsSync(browserPath));
+  if (installed) return installed;
   const candidates = [
     path.join(process.env.LOCALAPPDATA || "", "ms-playwright"),
     path.join(process.env.USERPROFILE || "", "AppData", "Local", "ms-playwright")

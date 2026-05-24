@@ -24,6 +24,8 @@
     "desktop:pack:win:production-signed": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows-production-signed.ps1",
     "desktop:smoke": ".\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\typescript\\bin\\tsc -p tsconfig.json && .\\tools\\node-v24.15.0-win-x64\\node.exe scripts/desktop-smoke-test.cjs",
     "desktop:smoke:packaged": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/packaged-desktop-smoke.cjs",
+    "desktop:smoke:packaged:pdf-touch": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/packaged-desktop-pdf-touch-smoke.cjs",
+    "desktop:smoke:packaged:epub-image-touch": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/packaged-desktop-epub-image-touch-smoke.cjs",
     "desktop:smoke:installed": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/installed-desktop-smoke.cjs",
     "mobile:prepare": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/prepare-vendor-assets.cjs && .\\tools\\node-v24.15.0-win-x64\\node.exe scripts/prepare-mobile-web.cjs",
     "mobile:sync": ".\\tools\\node-v24.15.0-win-x64\\node.exe scripts/prepare-vendor-assets.cjs && .\\tools\\node-v24.15.0-win-x64\\node.exe scripts/prepare-mobile-web.cjs && .\\tools\\node-v24.15.0-win-x64\\node.exe .\\node_modules\\@capacitor\\cli\\bin\\capacitor sync",

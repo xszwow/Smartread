@@ -259,6 +259,41 @@
     display: block;
 }
 
+html.desktop-runtime #book-content.book-epub.desktop-epub-visual {
+    overflow: auto;
+    overscroll-behavior: contain;
+    touch-action: none;
+}
+
+html.desktop-runtime #book-content.book-epub.desktop-epub-visual,
+html.desktop-runtime #book-content.book-epub.desktop-epub-visual * {
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+html.desktop-runtime #book-content.book-epub.desktop-epub-visual>.epub-container {
+    height: calc(100% * var(--desktop-epub-zoom, 1)) !important;
+    max-width: none !important;
+    overflow: visible !important;
+    transform-origin: 0 0;
+    width: calc(100% * var(--desktop-epub-zoom, 1)) !important;
+}
+
+html.desktop-runtime #book-content.book-epub.desktop-epub-visual>.epub-container>.epub-view {
+    transform: scale(var(--desktop-epub-zoom, 1));
+    transform-origin: 0 0;
+}
+
+html.desktop-runtime #book-content.book-epub.desktop-epub-zoomed {
+    cursor: grab;
+}
+
+html.desktop-runtime #book-content.book-epub.desktop-epub-zoomed.is-panning {
+    cursor: grabbing;
+}
+
 .reader-magnifier-hit {
     display: none;
     position: absolute;
@@ -387,6 +422,18 @@
     touch-action: pan-x pan-y;
     -webkit-overflow-scrolling: touch;
     background: var(--pdf-stage-bg);
+}
+
+html.desktop-runtime .pdf-page-stage {
+    touch-action: none;
+}
+
+html.desktop-runtime .pdf-page-stage,
+html.desktop-runtime .pdf-page-stage * {
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .pdf-page-surface {

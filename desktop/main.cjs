@@ -16,6 +16,10 @@ const speechRecognitionProcesses = new Map();
 app.setName("SmartRead");
 app.setAppUserModelId("com.smartread.desktop");
 
+if (process.platform === "win32") {
+  app.commandLine.appendSwitch("touch-events", "enabled");
+}
+
 if (process.env.SMARTREAD_USER_DATA_DIR) {
   app.setPath("userData", process.env.SMARTREAD_USER_DATA_DIR);
 }
@@ -119,6 +123,7 @@ async function createWindow() {
       sandbox: true
     }
   });
+  configureDesktopZoomRouting(mainWindow);
 
   mainWindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
     if (isLocalUrl(targetUrl)) return { action: "allow" };
@@ -140,6 +145,44 @@ async function createWindow() {
   const url = await startLocalServer();
   writeDesktopLog(`Loading app shell from ${url}`);
   loadWindowWithRetry(mainWindow, url);
+}
+
+function configureDesktopZoomRouting(window) {
+  const webContents = window.webContents;
+  const channel = "smartread:set-pdf-zoom-routing";
+  const state = {
+    enabled: false,
+    previousZoomFactor: null
+  };
+  const setEnabled = (enabled) => {
+    if (webContents.isDestroyed() || state.enabled === enabled) return;
+    if (enabled) {
+      state.previousZoomFactor = webContents.getZoomFactor();
+      state.enabled = true;
+      webContents.setZoomFactor(1);
+      return;
+    }
+    state.enabled = false;
+    const previousZoomFactor = state.previousZoomFactor;
+    state.previousZoomFactor = null;
+    if (typeof previousZoomFactor === "number") {
+      webContents.setZoomFactor(previousZoomFactor);
+    }
+  };
+  const onRoutingRequest = (event, enabled) => {
+    const requestingUrl = event.senderFrame?.url || event.sender.getURL();
+    if (event.sender !== webContents || !isLocalUrl(requestingUrl)) return;
+    setEnabled(enabled === true);
+  };
+  ipcMain.on(channel, onRoutingRequest);
+  webContents.once("destroyed", () => ipcMain.removeListener(channel, onRoutingRequest));
+  webContents.on("zoom-changed", (event, direction) => {
+    if (!state.enabled || !isLocalUrl(webContents.getURL())) return;
+    event.preventDefault();
+    if (webContents.isDestroyed()) return;
+    webContents.setZoomFactor(1);
+    webContents.send("smartread:native-zoom-requested", direction);
+  });
 }
 
 function isLocalUrl(targetUrl) {

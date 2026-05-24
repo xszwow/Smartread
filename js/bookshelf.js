@@ -37,6 +37,28 @@ const Bookshelf = {
         return !!window.SmartReadNativeBackend?.enabled;
     },
 
+    isDesktopRuntime() {
+        return window.SmartReadDesktop?.appMode === 'desktop';
+    },
+
+    isLocalDesktopUser() {
+        return this.isDesktopRuntime() && this.user?.email?.toLowerCase() === 'local-desktop@smartread.local';
+    },
+
+    authRequiredMessage(message) {
+        if (this.isDesktopRuntime()) {
+            return message && !/登录|SmartRead/.test(message)
+                ? message
+                : '本机书架正在启动，请稍后再试。';
+        }
+        if (this.isNativeStandalone() || this.isNativeBackend()) {
+            return message && !/登录|SmartRead/.test(message)
+                ? message
+                : '请先进入本机书架。';
+        }
+        return message || '请先登录 SmartRead。';
+    },
+
     hasNativeBackend() {
         return this.isNativeBackend() || !!window.SmartReadNativeStandalone?.hasNativeBackend?.();
     },
@@ -180,7 +202,7 @@ const Bookshelf = {
 
     requireSmartReadSignedIn(message) {
         if (this.user) return true;
-            this.cloud.message = message || (this.isNativeStandalone() || this.isNativeBackend() ? '请先进入本机书架。' : '请先登录 SmartRead。');
+        this.cloud.message = this.authRequiredMessage(message);
         this.render();
         document.getElementById('cloud-section')?.scrollIntoView({ behavior: 'smooth' });
         return false;
@@ -1022,6 +1044,18 @@ const Bookshelf = {
                 : this.standaloneCloudHTML();
             return;
         }
+        if (this.isLocalDesktopUser()) {
+            if (kicker) kicker.textContent = 'LOCAL';
+            if (title) title.textContent = '本机书架';
+            body.innerHTML = this.desktopLocalCloudHTML();
+            return;
+        }
+        if (this.isDesktopRuntime() && !this.user) {
+            if (kicker) kicker.textContent = 'LOCAL';
+            if (title) title.textContent = '本机书架';
+            body.innerHTML = this.desktopLocalUnavailableHTML();
+            return;
+        }
         if (kicker) kicker.textContent = this.user ? 'ONLINE' : 'SMARTREAD';
         if (title) title.textContent = this.user ? '在线找书' : '登录智读';
         if (!this.user) {
@@ -1042,17 +1076,10 @@ const Bookshelf = {
             card.innerHTML = '';
             return;
         }
-        card.classList.remove('hidden');
-        card.innerHTML = `<div class="cloud-panel-head">
-                <div>
-                    <span>SETTINGS</span>
-                    <h3>设置</h3>
-                </div>
-                <p>账号、在线书源和 AI API 统一在这里管理，搜索区只负责找书下载。</p>
-            </div>
-            ${this.globalCloudMessageHTML()}
-            <div class="desktop-settings-grid">
-                <section class="cloud-settings-panel" aria-label="账号">
+        const isLocalDesktop = this.isLocalDesktopUser();
+        const accountPanel = isLocalDesktop
+            ? ''
+            : `<section class="cloud-settings-panel" aria-label="账号">
                     <div class="cloud-panel-head">
                         <div>
                             <span>ACCOUNT</span>
@@ -1067,7 +1094,18 @@ const Bookshelf = {
                         </div>
                         <button class="btn btn-icon" onclick="Bookshelf.logout()">退出</button>
                     </div>
-                </section>
+                </section>`;
+        card.classList.remove('hidden');
+        card.innerHTML = `<div class="cloud-panel-head">
+                <div>
+                    <span>SETTINGS</span>
+                    <h3>设置</h3>
+                </div>
+                <p>${isLocalDesktop ? '在线书源和 AI API 在这里管理，桌面版默认进入本机书架。' : '账号、在线书源和 AI API 统一在这里管理，搜索区只负责找书下载。'}</p>
+            </div>
+            ${this.globalCloudMessageHTML()}
+            <div class="desktop-settings-grid">
+                ${accountPanel}
                 ${this.cloudServiceConfigHTML()}
                 <section class="cloud-api-panel" aria-label="AI API 配置">
                     <div class="cloud-panel-head">
@@ -1143,6 +1181,28 @@ const Bookshelf = {
             ${this.globalCloudMessageHTML()}
             ${this.cloudServiceConfigHTML()}
             ${this.zlibBound && !this.cloud.rebinding ? this.onlineSearchPanelHTML() : ''}`;
+    },
+
+    desktopLocalCloudHTML() {
+        return `<div class="cloud-account-row">
+                <div>
+                    <strong>本机书架</strong>
+                    <span>桌面版默认直接进入；书籍、AI 设置和阅读进度保存在这台电脑。</span>
+                </div>
+            </div>
+            ${this.globalCloudMessageHTML()}
+            ${this.cloudServiceConfigHTML()}
+            ${this.zlibBound && !this.cloud.rebinding ? this.onlineSearchPanelHTML() : ''}`;
+    },
+
+    desktopLocalUnavailableHTML() {
+        return `<div class="cloud-account-row">
+                <div>
+                    <strong>本机书架</strong>
+                    <span>正在连接本机服务。桌面版无需邮箱验证码。</span>
+                </div>
+            </div>
+            ${this.globalCloudMessageHTML()}`;
     },
 
     standaloneCloudHTML() {
