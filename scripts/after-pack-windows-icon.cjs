@@ -47,5 +47,23 @@ module.exports = async function afterPackWindowsIcon(context) {
     productVersion,
   ];
 
-  execFileSync(rceditPath, args, { stdio: "inherit" });
+  await runWithRetry(() => execFileSync(rceditPath, args, { stdio: "inherit" }), 5, 1000);
 };
+
+async function runWithRetry(action, attempts, delayMs) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      action();
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) {
+        break;
+      }
+      console.warn(`[windows-icon] rcedit failed, retrying (${attempt}/${attempts})`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+    }
+  }
+  throw lastError;
+}

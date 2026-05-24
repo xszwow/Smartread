@@ -12,9 +12,12 @@ let serverLogPath = "";
 const desktopStartedAt = Date.now();
 const desktopLogBuffer = [];
 const speechRecognitionProcesses = new Map();
+let consolePipeBroken = false;
 
 app.setName("SmartRead");
 app.setAppUserModelId("com.smartread.desktop");
+process.stdout?.on?.("error", handleConsolePipeError);
+process.stderr?.on?.("error", handleConsolePipeError);
 
 if (process.platform === "win32") {
   app.commandLine.appendSwitch("touch-events", "enabled");
@@ -69,10 +72,33 @@ async function startLocalServer() {
 
 function writeServerLog(stream, chunk) {
   const text = `[${new Date().toISOString()}] [${stream}] ${String(chunk)}`;
-  if (stream === "stderr") console.error(text.trimEnd());
-  else console.log(text.trimEnd());
+  writeConsoleLog(stream, text.trimEnd());
   if (!serverLogPath) return;
   fs.appendFile(serverLogPath, text, () => {});
+}
+
+function writeConsoleLog(stream, text) {
+  if (consolePipeBroken || !text) return;
+  const target = stream === "stderr" ? process.stderr : process.stdout;
+  try {
+    target.write(`${text}\n`, error => {
+      if (error?.code === "EPIPE") consolePipeBroken = true;
+    });
+  } catch (error) {
+    if (error?.code === "EPIPE") {
+      consolePipeBroken = true;
+      return;
+    }
+    throw error;
+  }
+}
+
+function handleConsolePipeError(error) {
+  if (error?.code === "EPIPE") {
+    consolePipeBroken = true;
+    return;
+  }
+  throw error;
 }
 
 function writeDesktopLog(message) {

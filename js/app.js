@@ -335,7 +335,7 @@ const App = {
     },
 
     handleDesktopPdfZoomShortcut(event) {
-        if (!this.isDesktopVisualZoomReading() || this.isTypingTarget(event.target) || !(event.ctrlKey || event.metaKey)) return false;
+        if (!this.isDesktopZoomReading() || this.isTypingTarget(event.target) || !(event.ctrlKey || event.metaKey)) return false;
         let nextZoom = null;
         const currentZoom = Reader.getDesktopVisualZoomValue();
         const step = Reader.getDesktopVisualZoomStep();
@@ -344,7 +344,9 @@ const App = {
         } else if (event.key === '-' || event.key === '_') {
             nextZoom = currentZoom - step;
         } else if (event.key === '0') {
-            nextZoom = Reader.getDesktopVisualMinZoom();
+            nextZoom = typeof Reader.getDesktopVisualResetZoomValue === 'function'
+                ? Reader.getDesktopVisualResetZoomValue()
+                : Reader.getDesktopVisualMinZoom();
         }
         if (nextZoom == null) return false;
 
@@ -355,18 +357,20 @@ const App = {
     },
 
     handleDesktopZoomWheel(event) {
-        if (!this.isDesktopVisualZoomReading() || !event.ctrlKey) return false;
+        if (!this.isDesktopZoomReading() || !event.ctrlKey) return false;
         const stage = this.getDesktopVisualZoomStage();
-        if (!stage?.contains(event.target)) return false;
+        if (!this.isDesktopZoomEventInStage(stage, event.target)) return false;
         event.preventDefault();
         event.stopPropagation();
         if (performance.now() < Math.max(Reader.pdfNativeZoomBlockedUntil || 0, Reader.epubNativeZoomBlockedUntil || 0)) return true;
         this.desktopPdfZoomEventAt = performance.now();
         if (this.isDesktopPdfReading()) {
             Reader.handlePdfZoomWheel(event);
-        } else {
+        } else if (this.isDesktopEpubReading()) {
             const factor = Math.exp(-Math.max(-160, Math.min(160, event.deltaY)) * 0.004);
             Reader.setDesktopEpubZoom(Reader.epubZoom * factor, { clientX: event.clientX, clientY: event.clientY });
+        } else {
+            Reader.handleDesktopTextZoomWheel(event);
         }
         return true;
     },
@@ -386,9 +390,16 @@ const App = {
     },
 
     getDesktopVisualZoomStage() {
-        return this.isDesktopPdfReading()
-            ? document.getElementById('pdf-page-stage')
-            : Reader.getDesktopEpubStage?.();
+        if (this.isDesktopPdfReading()) return document.getElementById('pdf-page-stage');
+        if (this.isDesktopEpubReading()) return Reader.getDesktopEpubStage?.();
+        return Reader.getDesktopTextStage?.();
+    },
+
+    isDesktopZoomEventInStage(stage, target) {
+        if (!stage || !target) return false;
+        if (stage.contains(target)) return true;
+        const frame = target.ownerDocument?.defaultView?.frameElement;
+        return !!frame && stage.contains(frame);
     },
 
     getDesktopVisualZoomAnchor() {
@@ -398,7 +409,9 @@ const App = {
         if (!point) {
             return this.isDesktopPdfReading()
                 ? Reader.getPdfViewportCenter()
-                : Reader.getDesktopEpubViewportCenter();
+                : this.isDesktopEpubReading()
+                    ? Reader.getDesktopEpubViewportCenter()
+                    : Reader.getDesktopTextViewportCenter?.();
         }
         const rect = stage.getBoundingClientRect();
         if (
@@ -410,9 +423,10 @@ const App = {
 
     handleDesktopNativeZoom(direction) {
         if (!this.isDesktopRuntime() || performance.now() - this.desktopPdfZoomEventAt < 100) return;
-        if (!this.isDesktopVisualZoomReading()) return;
+        if (!this.isDesktopZoomReading()) return;
         if (this.isDesktopPdfReading() && !Reader.canZoomPdf()) return;
-        if (this.isDesktopEpubImageReading() && !Reader.canZoomDesktopEpubImagePage()) return;
+        if (this.isDesktopEpubReading() && !Reader.canZoomDesktopEpubPage?.()) return;
+        if (this.isDesktopTextReading() && !Reader.canZoomDesktopTextPage?.()) return;
         if (performance.now() < Math.max(Reader.pdfNativeZoomBlockedUntil || 0, Reader.epubNativeZoomBlockedUntil || 0)) return;
         const anchor = this.getDesktopVisualZoomAnchor();
         if (!anchor) return;
@@ -534,8 +548,25 @@ const App = {
             && Reader.isDesktopEpubImagePageActive?.();
     },
 
+    isDesktopEpubReading() {
+        return this.isDesktopRuntime()
+            && !!document.getElementById('reader-view')?.classList.contains('active')
+            && Reader.book?.type === 'epub'
+            && Reader.isDesktopEpubPageActive?.();
+    },
+
+    isDesktopTextReading() {
+        return this.isDesktopRuntime()
+            && !!document.getElementById('reader-view')?.classList.contains('active')
+            && !!Reader.canZoomDesktopTextPage?.();
+    },
+
     isDesktopVisualZoomReading() {
-        return this.isDesktopPdfReading() || this.isDesktopEpubImageReading();
+        return this.isDesktopPdfReading() || this.isDesktopEpubReading();
+    },
+
+    isDesktopZoomReading() {
+        return this.isDesktopVisualZoomReading() || this.isDesktopTextReading();
     },
 
     setDesktopPdfZoomRoutingEnabled(enabled) {
@@ -546,7 +577,7 @@ const App = {
     },
 
     syncDesktopPdfZoomRouting() {
-        this.setDesktopPdfZoomRoutingEnabled(this.isDesktopVisualZoomReading());
+        this.setDesktopPdfZoomRoutingEnabled(this.isDesktopZoomReading());
     },
 
     syncRuntimeClass() {

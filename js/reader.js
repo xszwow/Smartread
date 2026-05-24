@@ -4,6 +4,13 @@ const Reader = {
     pages: [],
     currentPage: 0,
     fontSize: 22,
+    textZoom: 1,
+    textMinZoom: 1,
+    textMaxZoom: 4,
+    textZoomStep: 0.15,
+    textPanState: null,
+    textPointerMap: new Map(),
+    textPointerPinchState: null,
     epubRendition: null,
     epubBook: null,
     epubLayoutReady: false,
@@ -81,6 +88,7 @@ const Reader = {
         this.lastLayoutSize = null;
         this.resetPdfZoomState();
         this.resetEpubVisualZoomState();
+        this.resetDesktopTextZoomState();
 
         // 清理旧的 EPUB 实例
         if (this.epubBook) {
@@ -267,6 +275,10 @@ const Reader = {
                     -webkit-box-decoration-break: clone;
                     box-decoration-break: clone;
                 }
+                html.smartread-desktop-epub-visual-page,
+                html.smartread-desktop-epub-visual-page body,
+                body.smartread-desktop-epub-visual-page,
+                body.smartread-desktop-epub-visual-page *,
                 html.smartread-desktop-epub-image-page,
                 html.smartread-desktop-epub-image-page body,
                 body.smartread-desktop-epub-image-page,
@@ -691,6 +703,23 @@ const Reader = {
         this.updateDisplayControls();
     },
 
+    resetDesktopTextZoomState() {
+        this.textPanState = null;
+        this.textPointerMap.clear();
+        this.textPointerPinchState = null;
+        this.textZoom = 1;
+        const stage = document.getElementById('book-content');
+        if (stage) {
+            stage.classList.remove('desktop-text-visual', 'desktop-text-zoomed', 'is-panning');
+            stage.style.removeProperty('--desktop-text-zoom');
+            const surface = stage.querySelector('.desktop-text-page-surface');
+            const content = stage.querySelector('.desktop-text-page-content');
+            surface?.removeAttribute('style');
+            content?.removeAttribute('style');
+        }
+        this.updateDisplayControls();
+    },
+
     bindPdfZoomGestures() {
         const stage = document.getElementById('pdf-page-stage');
         if (!stage) return;
@@ -781,30 +810,66 @@ const Reader = {
         });
     },
 
+    isDesktopEpubPageActive() {
+        if (!this.isDesktopRuntime() || this.book?.type !== 'epub' || !this.epubRendition) return false;
+        const contents = this.epubRendition.getContents?.() || [];
+        return contents.some(content => {
+            const doc = content?.document;
+            const frame = doc?.defaultView?.frameElement || content?.content;
+            const rect = frame?.getBoundingClientRect?.();
+            return !!doc?.body && (!rect || (rect.width > 0 && rect.height > 0));
+        });
+    },
+
     canZoomDesktopEpubImagePage() {
         return this.isDesktopEpubImagePageActive()
             && !(typeof Magnifier !== 'undefined' && Magnifier.enabled);
     },
 
+    canZoomDesktopEpubPage() {
+        return this.isDesktopEpubPageActive()
+            && !(typeof Magnifier !== 'undefined' && Magnifier.enabled);
+    },
+
+    canZoomDesktopTextPage() {
+        return this.isDesktopRuntime()
+            && !!document.getElementById('reader-view')?.classList.contains('active')
+            && this.book?.type === 'txt'
+            && !(typeof Magnifier !== 'undefined' && Magnifier.enabled);
+    },
+
     isDesktopVisualZoomReading() {
         return (this.book?.type === 'pdf' && !!this.pdfDoc)
-            || this.isDesktopEpubImagePageActive();
+            || this.isDesktopEpubPageActive()
+            || this.canZoomDesktopTextPage();
     },
 
     getDesktopVisualZoomStep() {
+        if (this.canZoomDesktopTextPage()) return this.textZoomStep;
         return this.book?.type === 'epub' ? this.pdfZoomStep : this.pdfZoomStep;
     },
 
     getDesktopVisualZoomValue() {
+        if (this.canZoomDesktopTextPage()) return this.textZoom;
         return this.book?.type === 'epub' ? this.epubZoom : this.pdfZoom;
     },
 
     getDesktopVisualMinZoom() {
+        if (this.canZoomDesktopTextPage()) return this.textMinZoom;
         return this.book?.type === 'epub' ? this.epubMinZoom : this.pdfMinZoom;
     },
 
+    getDesktopVisualResetZoomValue() {
+        if (this.canZoomDesktopTextPage()) return this.textMinZoom;
+        return this.getDesktopVisualMinZoom();
+    },
+
     setDesktopVisualZoom(value, anchor = null) {
-        if (this.book?.type === 'epub' && this.isDesktopEpubImagePageActive()) {
+        if (this.canZoomDesktopTextPage()) {
+            this.setDesktopTextZoom(value, anchor || this.getDesktopTextViewportCenter());
+            return true;
+        }
+        if (this.book?.type === 'epub' && this.isDesktopEpubPageActive()) {
             this.setDesktopEpubZoom(value, anchor || this.getDesktopEpubViewportCenter());
             return true;
         }
@@ -815,8 +880,267 @@ const Reader = {
         return false;
     },
 
+    getDesktopTextStage() {
+        if (!this.canZoomDesktopTextPage()) return null;
+        return document.getElementById('book-content');
+    },
+
+    getDesktopTextViewportCenter() {
+        const stage = this.getDesktopTextStage();
+        const rect = stage?.getBoundingClientRect();
+        if (!rect) return { clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 };
+        return {
+            clientX: rect.left + rect.width / 2,
+            clientY: rect.top + rect.height / 2
+        };
+    },
+
+    isDesktopTextZoomed() {
+        return this.textZoom > this.textMinZoom + 0.005;
+    },
+
+    toggleDesktopTextZoom(anchor = null) {
+        if (!this.canZoomDesktopTextPage()) return false;
+        const next = this.isDesktopTextZoomed()
+            ? this.textMinZoom
+            : Math.min(this.textMaxZoom, Math.max(this.textMinZoom, this.pdfDoubleTapZoom));
+        this.setDesktopTextZoom(next, anchor || this.getDesktopTextViewportCenter());
+        return true;
+    },
+
+    setDesktopTextZoom(value, anchor = null) {
+        if (!this.canZoomDesktopTextPage()) return false;
+        const next = Math.round(Math.min(this.textMaxZoom, Math.max(this.textMinZoom, Number(value) || 1)) * 100) / 100;
+        if (Math.abs(next - this.textZoom) < 0.005) {
+            this.updateDisplayControls();
+            return true;
+        }
+        const previous = this.textZoom;
+        this.textZoom = next;
+        this.applyDesktopTextPreviewZoom(anchor, previous);
+        this.showPdfZoomIndicator();
+        this.updateDisplayControls();
+        return true;
+    },
+
+    applyDesktopTextPreviewZoom(anchor = null, previousZoom = this.textZoom) {
+        const stage = this.getDesktopTextStage();
+        const surface = stage?.querySelector('.desktop-text-page-surface');
+        const content = stage?.querySelector('.desktop-text-page-content');
+        if (!stage || !surface || !content) return;
+
+        const rect = stage.getBoundingClientRect();
+        const focus = anchor || {
+            clientX: rect.left + stage.clientWidth / 2,
+            clientY: rect.top + stage.clientHeight / 2
+        };
+        const localX = focus.clientX - rect.left;
+        const localY = focus.clientY - rect.top;
+        const baseX = (stage.scrollLeft + localX) / Math.max(0.01, previousZoom);
+        const baseY = (stage.scrollTop + localY) / Math.max(0.01, previousZoom);
+        const baseWidth = Math.max(stage.clientWidth, content.scrollWidth, content.offsetWidth);
+        const baseHeight = Math.max(stage.clientHeight, content.scrollHeight, content.offsetHeight);
+
+        stage.style.setProperty('--desktop-text-zoom', String(this.textZoom));
+        stage.classList.add('desktop-text-visual');
+        stage.classList.toggle('desktop-text-zoomed', this.isDesktopTextZoomed());
+        surface.style.width = `${Math.ceil(baseWidth * this.textZoom)}px`;
+        surface.style.height = `${Math.ceil(baseHeight * this.textZoom)}px`;
+        content.style.width = `${Math.ceil(baseWidth)}px`;
+        content.style.transform = `scale(${this.textZoom})`;
+        content.style.transformOrigin = '0 0';
+
+        requestAnimationFrame(() => {
+            if (this.book?.type !== 'txt') return;
+            stage.scrollLeft = Math.max(0, baseX * this.textZoom - localX);
+            stage.scrollTop = Math.max(0, baseY * this.textZoom - localY);
+        });
+    },
+
+    syncDesktopTextZoomClass() {
+        const stage = document.getElementById('book-content');
+        if (!stage || this.book?.type !== 'txt') return;
+        stage.classList.add('desktop-text-visual');
+        stage.classList.toggle('desktop-text-zoomed', this.isDesktopTextZoomed());
+        stage.style.setProperty('--desktop-text-zoom', String(this.textZoom));
+        this.applyDesktopTextPreviewZoom(this.getDesktopTextViewportCenter(), this.textZoom);
+    },
+
+    handleDesktopTextZoomWheel(event) {
+        if (!event.ctrlKey || !this.canZoomDesktopTextPage()) return false;
+        event.preventDefault();
+        event.stopPropagation();
+        const factor = Math.exp(-Math.max(-160, Math.min(160, event.deltaY)) * 0.004);
+        this.setDesktopTextZoom(this.textZoom * factor, { clientX: event.clientX, clientY: event.clientY });
+        return true;
+    },
+
+    bindDesktopTextZoomGestures(stage) {
+        if (!stage || stage.__smartreadDesktopTextZoomGestures) return;
+        const wheel = event => this.handleDesktopTextZoomWheel(event);
+        const pointerDown = event => this.handleDesktopTextPointerDown(event);
+        const pointerMove = event => this.handleDesktopTextPointerMove(event);
+        const pointerEnd = event => this.handleDesktopTextPointerEnd(event);
+        const doubleClick = event => {
+            if (!this.canZoomDesktopTextPage()) return;
+            event.preventDefault();
+            event.stopPropagation();
+            this.toggleDesktopTextZoom({ clientX: event.clientX, clientY: event.clientY });
+        };
+        stage.addEventListener('wheel', wheel, { passive: false });
+        stage.addEventListener('pointerdown', pointerDown);
+        stage.addEventListener('pointermove', pointerMove);
+        stage.addEventListener('pointerup', pointerEnd);
+        stage.addEventListener('pointercancel', pointerEnd);
+        stage.addEventListener('lostpointercapture', pointerEnd);
+        stage.addEventListener('dblclick', doubleClick);
+        stage.__smartreadDesktopTextZoomGestures = true;
+    },
+
+    handleDesktopTextPointerDown(event) {
+        if (!this.canZoomDesktopTextPage()) return;
+        if (this.isInteractivePdfTarget(event.target)) return;
+        if (this.isPdfTouchPointer(event)) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.updateDesktopTextPointer(event);
+            try { event.currentTarget.setPointerCapture(event.pointerId); } catch { }
+            const points = this.getDesktopTextPointerList();
+            if (points.length >= 2) {
+                this.cancelDesktopTextPan();
+                this.textPointerPinchState = this.getPdfPinchState(points, this.textZoom);
+                return;
+            }
+            if (this.isDesktopTextZoomed()) this.beginDesktopTextPan(event, event.pointerId);
+            return;
+        }
+        if (event.button !== 0 || !this.isDesktopTextZoomed()) return;
+        event.preventDefault();
+        event.stopPropagation();
+        try { event.currentTarget.setPointerCapture(event.pointerId); } catch { }
+        this.beginDesktopTextPan(event, event.pointerId);
+    },
+
+    handleDesktopTextPointerMove(event) {
+        if (this.isPdfTouchPointer(event)) {
+            if (!this.canZoomDesktopTextPage() || !this.textPointerMap.has(event.pointerId)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            this.updateDesktopTextPointer(event);
+            const points = this.getDesktopTextPointerList();
+            if (points.length >= 2) {
+                if (!this.textPointerPinchState) {
+                    this.cancelDesktopTextPan();
+                    this.textPointerPinchState = this.getPdfPinchState(points, this.textZoom);
+                    return;
+                }
+                const current = this.getPdfPinchState(points, this.textZoom);
+                const ratio = current.distance / Math.max(1, this.textPointerPinchState.distance);
+                this.setDesktopTextZoom(this.textPointerPinchState.zoom * ratio, current.center);
+                return;
+            }
+            if (this.textPanState?.pointerId === event.pointerId && this.isDesktopTextZoomed()) {
+                this.moveDesktopTextPan(event);
+            }
+            return;
+        }
+        const stage = this.getDesktopTextStage();
+        const state = this.textPanState;
+        if (!stage || state?.pointerId !== event.pointerId) return;
+        event.preventDefault();
+        event.stopPropagation();
+        this.moveDesktopTextPan(event);
+    },
+
+    handleDesktopTextPointerEnd(event) {
+        if (this.isPdfTouchPointer(event)) {
+            if (!this.canZoomDesktopTextPage() || !this.textPointerMap.has(event.pointerId)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            this.textPointerMap.delete(event.pointerId);
+            try { event.currentTarget.releasePointerCapture(event.pointerId); } catch { }
+            const points = this.getDesktopTextPointerList();
+            if (this.textPointerPinchState) {
+                if (points.length >= 2) {
+                    this.textPointerPinchState = this.getPdfPinchState(points, this.textZoom);
+                    return;
+                }
+                this.textPointerPinchState = null;
+                this.cancelDesktopTextPan();
+                if (points.length === 1 && this.isDesktopTextZoomed()) {
+                    this.beginDesktopTextPan(points[0], points[0].pointerId);
+                }
+                return;
+            }
+            if (this.textPanState?.pointerId === event.pointerId) this.cancelDesktopTextPan();
+            return;
+        }
+        const stage = this.getDesktopTextStage();
+        if (this.textPanState?.pointerId !== event.pointerId) return;
+        event.preventDefault();
+        event.stopPropagation();
+        try { event.currentTarget.releasePointerCapture(event.pointerId); } catch { }
+        this.cancelDesktopTextPan();
+    },
+
+    updateDesktopTextPointer(event) {
+        const point = {
+            pointerId: event.pointerId,
+            pointerType: event.pointerType,
+            clientX: event.clientX,
+            clientY: event.clientY
+        };
+        this.textPointerMap.set(event.pointerId, point);
+        return point;
+    },
+
+    getDesktopTextPointerList() {
+        return Array.from(this.textPointerMap.values());
+    },
+
+    beginDesktopTextPan(point, pointerId = null) {
+        const stage = this.getDesktopTextStage();
+        if (!stage) return;
+        this.textPanState = {
+            pointerId,
+            x: point.clientX,
+            y: point.clientY,
+            scrollLeft: stage.scrollLeft,
+            scrollTop: stage.scrollTop
+        };
+        stage.classList.add('is-panning');
+    },
+
+    moveDesktopTextPan(point) {
+        const stage = this.getDesktopTextStage();
+        const state = this.textPanState;
+        if (!stage || !state) return;
+        stage.scrollLeft = state.scrollLeft + state.x - point.clientX;
+        stage.scrollTop = state.scrollTop + state.y - point.clientY;
+    },
+
+    cancelDesktopTextPan() {
+        const stage = this.getDesktopTextStage();
+        this.textPanState = null;
+        stage?.classList.remove('is-panning');
+    },
+
+    setTextFontSize(value) {
+        const next = Math.round(Math.min(40, Math.max(14, Number(value) || this.fontSize)));
+        if (next === this.fontSize) {
+            this.updateDisplayControls();
+            return;
+        }
+        this.fontSize = next;
+        if (this.book?.type === 'epub') this.epubFontSizeOverride = true;
+        this.updateFontSize();
+    },
+
     toggleDesktopVisualZoom(anchor = null) {
-        if (this.book?.type === 'epub' && this.isDesktopEpubImagePageActive()) {
+        if (this.canZoomDesktopTextPage()) {
+            return this.toggleDesktopTextZoom(anchor);
+        }
+        if (this.book?.type === 'epub' && this.isDesktopEpubPageActive()) {
             return this.toggleDesktopEpubZoom(anchor);
         }
         return this.toggleDesktopPdfZoom(anchor);
@@ -837,7 +1161,7 @@ const Reader = {
     },
 
     toggleDesktopEpubZoom(anchor = null) {
-        if (!this.isDesktopRuntime() || !this.isDesktopEpubImagePageActive()) return false;
+        if (!this.canZoomDesktopEpubPage()) return false;
         const next = this.isDesktopEpubZoomed()
             ? this.epubMinZoom
             : Math.min(this.epubMaxZoom, Math.max(this.epubMinZoom, this.pdfDoubleTapZoom));
@@ -872,7 +1196,7 @@ const Reader = {
         const baseY = (stage.scrollTop + localY) / Math.max(0.01, previousZoom);
 
         stage.style.setProperty('--desktop-epub-zoom', String(this.epubZoom));
-        stage.classList.toggle('desktop-epub-visual', this.isDesktopEpubImagePageActive());
+        stage.classList.toggle('desktop-epub-visual', this.isDesktopEpubPageActive());
         stage.classList.toggle('desktop-epub-zoomed', this.isDesktopEpubZoomed());
 
         requestAnimationFrame(() => {
@@ -885,7 +1209,7 @@ const Reader = {
     syncDesktopEpubZoomClass() {
         const stage = this.getDesktopEpubStage();
         if (!stage) return;
-        const active = this.isDesktopEpubImagePageActive();
+        const active = this.isDesktopEpubPageActive();
         stage.classList.toggle('desktop-epub-visual', active);
         stage.classList.toggle('desktop-epub-zoomed', active && this.isDesktopEpubZoomed());
         if (active) {
@@ -904,10 +1228,12 @@ const Reader = {
         const existing = doc?.__smartreadDesktopImageGestures;
         const active = this.isDesktopRuntime()
             && this.book?.type === 'epub'
-            && doc?.body?.classList.contains('smartread-epub-image-page');
+            && !!doc?.body;
         if (!active) {
             existing?.cleanup?.();
             if (doc) doc.__smartreadDesktopImageGestures = null;
+            doc?.documentElement?.classList.remove('smartread-desktop-epub-visual-page');
+            doc?.body?.classList.remove('smartread-desktop-epub-visual-page');
             doc?.documentElement?.classList.remove('smartread-desktop-epub-image-page');
             doc?.body?.classList.remove('smartread-desktop-epub-image-page');
             this.syncDesktopEpubZoomClass();
@@ -916,8 +1242,11 @@ const Reader = {
 
         this.syncDesktopEpubZoomClass();
         if (typeof Magnifier !== 'undefined' && Magnifier.enabled) Magnifier.disable();
-        doc.documentElement.classList.add('smartread-desktop-epub-image-page');
-        doc.body.classList.add('smartread-desktop-epub-image-page');
+        const imagePage = doc.body.classList.contains('smartread-epub-image-page');
+        doc.documentElement.classList.add('smartread-desktop-epub-visual-page');
+        doc.body.classList.add('smartread-desktop-epub-visual-page');
+        doc.documentElement.classList.toggle('smartread-desktop-epub-image-page', imagePage);
+        doc.body.classList.toggle('smartread-desktop-epub-image-page', imagePage);
         const frame = doc.defaultView?.frameElement || contents?.content;
         frame?.setAttribute?.('draggable', 'false');
         doc.body.setAttribute('draggable', 'false');
@@ -969,7 +1298,7 @@ const Reader = {
 
     blockDesktopEpubNativeDrag(event, doc, stop = false) {
         if (!this.isDesktopRuntime() || this.book?.type !== 'epub') return false;
-        if (!doc?.body?.classList.contains('smartread-epub-image-page')) return false;
+        if (!doc?.body?.classList.contains('smartread-desktop-epub-visual-page')) return false;
         if (event.type === 'mousedown' && event.button !== 0) return false;
         event.preventDefault?.();
         if (stop) event.stopPropagation?.();
@@ -1017,7 +1346,7 @@ const Reader = {
     },
 
     handleDesktopEpubWheel(event, doc) {
-        if (!event.ctrlKey || !this.canZoomDesktopEpubImagePage()) return;
+        if (!event.ctrlKey || !this.canZoomDesktopEpubPage()) return;
         event.preventDefault();
         event.stopPropagation();
         const point = this.normalizeEpubPointerEvent({
@@ -1033,7 +1362,7 @@ const Reader = {
 
     handleDesktopEpubPointerDown(event, doc) {
         if (!this.isDesktopRuntime() || this.book?.type !== 'epub') return;
-        if (!doc?.body?.classList.contains('smartread-epub-image-page')) return;
+        if (!doc?.body?.classList.contains('smartread-desktop-epub-visual-page')) return;
         if (event.pointerType === 'mouse' && event.button !== 0) return;
         event.preventDefault();
         event.stopPropagation();
@@ -1140,7 +1469,7 @@ const Reader = {
 
     handleDesktopEpubTouchStart(event, doc) {
         if (this.epubPointerMap.size) return this.blockDesktopEpubNativeDrag(event, doc, true);
-        if (!this.isDesktopRuntime() || !doc?.body?.classList.contains('smartread-epub-image-page')) return;
+        if (!this.isDesktopRuntime() || !doc?.body?.classList.contains('smartread-desktop-epub-visual-page')) return;
         event.preventDefault();
         event.stopPropagation();
         this.epubNativeZoomBlockedUntil = performance.now() + 250;
@@ -1158,7 +1487,7 @@ const Reader = {
 
     handleDesktopEpubTouchMove(event, doc) {
         if (this.epubPointerMap.size) return this.blockDesktopEpubNativeDrag(event, doc, true);
-        if (!this.isDesktopRuntime() || !doc?.body?.classList.contains('smartread-epub-image-page')) return;
+        if (!this.isDesktopRuntime() || !doc?.body?.classList.contains('smartread-desktop-epub-visual-page')) return;
         event.preventDefault();
         event.stopPropagation();
         this.epubNativeZoomBlockedUntil = performance.now() + 250;
@@ -1176,7 +1505,7 @@ const Reader = {
 
     handleDesktopEpubTouchEnd(event, doc) {
         if (this.epubPointerMap.size) return this.blockDesktopEpubNativeDrag(event, doc, true);
-        if (!this.isDesktopRuntime() || !doc?.body?.classList.contains('smartread-epub-image-page')) return;
+        if (!this.isDesktopRuntime() || !doc?.body?.classList.contains('smartread-desktop-epub-visual-page')) return;
         event.preventDefault();
         event.stopPropagation();
         this.epubNativeZoomBlockedUntil = performance.now() + 250;
@@ -1788,9 +2117,16 @@ const Reader = {
         const el = document.getElementById('book-content');
         if (this.pages.length === 0) { el.textContent = '内容为空'; return; }
         const text = this.pages[this.currentPage] || '';
-        el.innerHTML = text.split('\n').map(p =>
+        const html = text.split('\n').map(p =>
             p.trim() ? `<p>${escapeHTML(p.trim())}</p>` : ''
         ).join('');
+        if (this.isDesktopRuntime()) {
+            el.innerHTML = `<div class="desktop-text-page-surface"><div class="desktop-text-page-content">${html}</div></div>`;
+            this.bindDesktopTextZoomGestures(el);
+            this.syncDesktopTextZoomClass();
+        } else {
+            el.innerHTML = html;
+        }
         this.currentLocation = this._buildTxtLocation(text);
         this.updateProgress();
     },
@@ -2120,12 +2456,20 @@ const Reader = {
             magnifierButton?.setAttribute('aria-pressed', String(this.isPdfZoomed()));
             return;
         }
-        if (this.book?.type === 'epub' && this.isDesktopRuntime() && this.isDesktopEpubImagePageActive()) {
+        if (this.book?.type === 'epub' && this.isDesktopRuntime()) {
             if (label) label.textContent = '页面缩放';
             if (disp) disp.textContent = Math.round(this.epubZoom * 100) + '%';
             const magnifierButton = document.getElementById('btn-magnifier');
             magnifierButton?.classList.toggle('is-tool-active', this.isDesktopEpubZoomed());
             magnifierButton?.setAttribute('aria-pressed', String(this.isDesktopEpubZoomed()));
+            return;
+        }
+        if (this.book?.type === 'txt' && this.isDesktopRuntime()) {
+            if (label) label.textContent = '页面缩放';
+            if (disp) disp.textContent = Math.round(this.textZoom * 100) + '%';
+            const magnifierButton = document.getElementById('btn-magnifier');
+            magnifierButton?.classList.toggle('is-tool-active', this.isDesktopTextZoomed());
+            magnifierButton?.setAttribute('aria-pressed', String(this.isDesktopTextZoomed()));
             return;
         }
         if (label) label.textContent = '字号';
@@ -2138,14 +2482,17 @@ const Reader = {
             this.setPdfZoom(this.pdfZoom + direction * this.pdfZoomStep, this.getPdfViewportCenter());
             return;
         }
-        if (this.book?.type === 'epub' && this.isDesktopRuntime() && this.isDesktopEpubImagePageActive()) {
+        if (this.book?.type === 'epub' && this.isDesktopRuntime()) {
             const direction = delta >= 0 ? 1 : -1;
             this.setDesktopEpubZoom(this.epubZoom + direction * this.pdfZoomStep, this.getDesktopEpubViewportCenter());
             return;
         }
-        this.fontSize = Math.min(40, Math.max(14, this.fontSize + delta));
-        if (this.book?.type === 'epub') this.epubFontSizeOverride = true;
-        this.updateFontSize();
+        if (this.book?.type === 'txt' && this.isDesktopRuntime()) {
+            const direction = delta >= 0 ? 1 : -1;
+            this.setDesktopTextZoom(this.textZoom + direction * this.textZoomStep, this.getDesktopTextViewportCenter());
+            return;
+        }
+        this.setTextFontSize(this.fontSize + delta);
     },
 
     async waitForCurrentPageReady(timeout = 1200) {

@@ -294,6 +294,37 @@ html.desktop-runtime #book-content.book-epub.desktop-epub-zoomed.is-panning {
     cursor: grabbing;
 }
 
+html.desktop-runtime #book-content.book-txt.desktop-text-visual {
+    overflow: auto;
+    overscroll-behavior: contain;
+    touch-action: none;
+}
+
+html.desktop-runtime #book-content.book-txt.desktop-text-visual,
+html.desktop-runtime #book-content.book-txt.desktop-text-visual * {
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+    user-select: none;
+}
+
+html.desktop-runtime #book-content.book-txt .desktop-text-page-surface {
+    min-height: 100%;
+    min-width: 100%;
+    position: relative;
+}
+
+html.desktop-runtime #book-content.book-txt .desktop-text-page-content {
+    transform-origin: 0 0;
+}
+
+html.desktop-runtime #book-content.book-txt.desktop-text-zoomed {
+    cursor: grab;
+}
+
+html.desktop-runtime #book-content.book-txt.desktop-text-zoomed.is-panning {
+    cursor: grabbing;
+}
+
 .reader-magnifier-hit {
     display: none;
     position: absolute;

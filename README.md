@@ -1,6 +1,6 @@
 # SmartRead
 
-SmartRead 是一个本地优先的 AI 阅读器，适合在手机上导入 EPUB、PDF、TXT 后阅读、听书、做 AI 按页解读和管理个人书库。它支持自定义 OpenAI-compatible API，可以使用自己的 API Base URL、API Key 和模型名接入兼容服务。阅读时可以选择按原文直接朗读，也可以选择生成并收听 AI 解读。它的重点不是账号系统或云同步，而是把正文阅读、AI 解读、听书字幕、漫画和复杂图文混排内容做成可离线、自用、可控的单机体验。
+SmartRead 是一个本地优先的 AI 阅读器，适合在 Android 手机或 Windows 电脑上导入 EPUB、PDF、TXT 后阅读、听书、做 AI 按页解读和管理个人书库。它支持自定义 OpenAI-compatible API，可以使用自己的 API Base URL、API Key 和模型名接入兼容服务。阅读时可以选择按原文直接朗读，也可以选择生成并收听 AI 解读。它的重点不是账号系统或云同步，而是把正文阅读、AI 解读、听书字幕、漫画和复杂图文混排内容做成可离线、自用、可控的单机体验。
 
 ## 应用功能特色
 
@@ -14,6 +14,7 @@ SmartRead 是一个本地优先的 AI 阅读器，适合在手机上导入 EPUB�
 - 字幕模式：支持字幕大、字幕小、字幕关闭，适合边听边看。
 - 移动端阅读控件：底部功能栏固定在屏幕底部，不跟随正文滑动，不覆盖可阅读区域。
 - 放大镜：正文页可双击开启或关闭放大镜，适合 PDF、扫描内容或小字号文本。
+- Windows 页面缩放：桌面版的 PDF、图片页、EPUB 文字页和 TXT 文字页支持整页缩放与拖拽查看，不通过修改字号放大内容。
 - 护眼和深色显示：阅读和听书控件会跟随主题，减少夜间阅读割裂感。
 - Android 单机模式：APK 默认在手机本地运行，书架、AI 配置、在线书源配置和阅读状态都走本地存储。
 - 内嵌找书入口：可搜索全球大量图书资源，覆盖小说、技术书、漫画书和图文混排书籍，实际可用性取决于外部书源状态。
@@ -46,7 +47,7 @@ SmartRead 是一个本地优先的 AI 阅读器，适合在手机上导入 EPUB�
 
 到 GitHub Release 下载 APK：
 
-[smartread.apk](https://github.com/xszwow/Smartread/releases/latest/download/smartread.apk)
+[BGsmartread.apk](https://github.com/xszwow/Smartread/releases/download/v0.1.0-android.1/BGsmartread.apk)
 
 手机安装：
 
@@ -55,11 +56,15 @@ SmartRead 是一个本地优先的 AI 阅读器，适合在手机上导入 EPUB�
 3. 如果系统提示禁止安装未知来源应用，给浏览器或文件管理器开启“安装未知应用”权限。
 4. 安装完成后打开 SmartRead。
 
-当前 GitHub Release 提供的是 Android 安装包，适合自用、测试和真机验证，不是 Play Store 生产签名包。
+当前 Android 安装包适合自用、测试和真机验证，不是 Play Store 生产签名包。
 
 ### Windows
 
-本地已有 Windows 构建产物时，可以运行：
+到 GitHub Release 下载 Windows 安装包：
+
+[SmartRead-Setup-0.1.0.exe](https://github.com/xszwow/Smartread/releases/latest/download/SmartRead-Setup-0.1.0.exe)
+
+下载后运行安装包，或在本地构建后运行：
 
 ```powershell
 .\release\"SmartRead Setup 0.1.0.exe"
@@ -71,7 +76,7 @@ SmartRead 是一个本地优先的 AI 阅读器，适合在手机上导入 EPUB�
 .\release\win-unpacked\SmartRead.exe
 ```
 
-Windows 公开分发需要正式代码签名证书，否则 SmartScreen 可能拦截。
+Windows 安装包当前为未签名测试分发版本，SmartScreen 可能提示风险；确认来源为本仓库 Release 后再继续安装。
 
 ## Android 使用说明
 
@@ -148,7 +153,8 @@ npm run desktop:smoke:installed
 - APK 能用 `adb install -r` 覆盖安装。
 - 真机能打开书架、导入书、进入正文页。
 - AI、听书、字幕、放大镜和底部控件在手机端不遮挡正文。
-- GitHub Release 的 Assets 里包含 `smartread.apk`。
+- Android GitHub Release 的 Assets 里包含现有 `BGsmartread.apk`。
+- Windows GitHub Release 的 Assets 里包含 `SmartRead-Setup-0.1.0.exe`。
 
 ## 当前仓库状态
 

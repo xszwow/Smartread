@@ -65,7 +65,7 @@ async function main() {
       { timeout: 30000 }
     );
     await page.waitForFunction(() => App.desktopPdfZoomRoutingEnabled === true, null, { timeout: 10000 });
-    await page.waitForTimeout(120);
+    await waitForDesktopEpubImageFrame(page);
 
     result.routing.epubShell = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.getZoomFactor());
     result.initial = await page.evaluate(() => {
@@ -230,6 +230,26 @@ async function sendNativeZoom(app, direction) {
     webContents.emit("zoom-changed", { preventDefault() { prevented = true; } }, value);
     return { prevented, shell: webContents.getZoomFactor() };
   }, direction);
+}
+
+async function waitForDesktopEpubImageFrame(page) {
+  await page.waitForFunction(
+    () => {
+      const frame = document.querySelector("#book-content iframe");
+      return !!frame?.contentDocument?.body?.classList.contains("smartread-desktop-epub-image-page");
+    },
+    null,
+    { timeout: 10000 }
+  );
+  await page.waitForTimeout(250);
+  await page.waitForFunction(
+    () => {
+      const frame = document.querySelector("#book-content iframe");
+      return !!frame?.contentDocument?.body?.classList.contains("smartread-desktop-epub-image-page");
+    },
+    null,
+    { timeout: 10000 }
+  );
 }
 
 function assertResult(result) {

@@ -86,6 +86,7 @@ async function main() {
     if (!readerText.includes(expectedText)) {
       throw new Error("Packaged app imported sample TXT but reader did not show its content");
     }
+    await assertTxtPageZoom(page);
     if (consoleErrors.length) {
       throw new Error(`Console errors: ${consoleErrors.join(" | ")}`);
     }
@@ -104,6 +105,58 @@ async function main() {
     fs.rmSync(dataDir, { recursive: true, force: true });
     fs.rmSync(userDataDir, { recursive: true, force: true });
   }
+}
+
+async function assertTxtPageZoom(page) {
+  await page.waitForSelector("#book-content.book-txt .desktop-text-page-content", { timeout: 10000 });
+  const before = await page.evaluate(() => {
+    const content = document.querySelector("#book-content .desktop-text-page-content");
+    return {
+      fontSize: Reader.fontSize,
+      textZoom: Reader.textZoom,
+      transform: getComputedStyle(content).transform,
+      visual: document.getElementById("book-content").classList.contains("desktop-text-visual"),
+      label: document.getElementById("reader-display-size-label")?.textContent || ""
+    };
+  });
+  await page.evaluate(() => {
+    const stage = document.getElementById("book-content");
+    const rect = stage.getBoundingClientRect();
+    stage.dispatchEvent(new WheelEvent("wheel", {
+      bubbles: true,
+      cancelable: true,
+      ctrlKey: true,
+      deltaY: -120,
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.top + rect.height / 2
+    }));
+  });
+  await page.waitForFunction(
+    () => Reader.textZoom > 1
+      && getComputedStyle(document.querySelector("#book-content .desktop-text-page-content")).transform !== "none",
+    null,
+    { timeout: 5000 }
+  );
+  const after = await page.evaluate(() => {
+    const content = document.querySelector("#book-content .desktop-text-page-content");
+    return {
+      fontSize: Reader.fontSize,
+      textZoom: Reader.textZoom,
+      transform: getComputedStyle(content).transform,
+      zoomed: document.getElementById("book-content").classList.contains("desktop-text-zoomed"),
+      label: document.getElementById("reader-display-size-label")?.textContent || "",
+      display: document.getElementById("font-size-display")?.textContent || ""
+    };
+  });
+  const pass = before.visual
+    && before.label === "页面缩放"
+    && after.label === "页面缩放"
+    && after.display.endsWith("%")
+    && after.zoomed
+    && after.textZoom > before.textZoom
+    && after.fontSize === before.fontSize
+    && /matrix|scale/.test(after.transform);
+  if (!pass) throw new Error(`Packaged TXT page zoom validation failed: ${JSON.stringify({ before, after })}`);
 }
 
 async function assertStartupNotBlank(page, outDir, label) {

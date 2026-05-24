@@ -370,11 +370,14 @@ const Magnifier = {
     isDesktopVisualTarget(target) {
         if (!this.isDesktopVisualMode()) return false;
         if (Reader.book?.type === 'pdf') return !!target?.closest?.('#pdf-page-stage');
-        return !!target?.closest?.('#book-content.book-epub, .epub-container, .epub-view');
+        if (Reader.book?.type === 'epub') return !!target?.closest?.('#book-content.book-epub, .epub-container, .epub-view');
+        if (Reader.book?.type === 'txt') return !!target?.closest?.('#book-content.book-txt');
+        return false;
     },
 
     getDesktopVisualCenter() {
         if (Reader.book?.type === 'epub') return Reader.getDesktopEpubViewportCenter();
+        if (Reader.book?.type === 'txt') return Reader.getDesktopTextViewportCenter?.() || Reader.getPdfViewportCenter();
         return Reader.getPdfViewportCenter();
     },
 
