@@ -96,52 +96,133 @@ Android 端默认行为：
 - 听书优先使用 Android 原生 TextToSpeech。
 - 语音输入优先使用 Android 系统语音识别，需要录音权限。
 
-## 从源码构建 APK
+## 从源码构建
 
-本地测试 APK：
+### 环境准备
+
+当前项目的 `npm` 脚本按 Windows 工作区配置，会直接调用 `tools` 目录中的本地工具。构建前需要准备：
+
+- Node.js 依赖：先运行 `npm install`。
+- Windows 构建：确保存在 `tools\node-v24.15.0-win-x64\node.exe`。
+- Android 构建：除 Node.js 外，还需要 `tools\jdk-21`、`tools\android-sdk\platforms\android-36` 和 `tools\android-sdk\build-tools\36.0.0`。
+- `tools`、`release`、`mobile-www` 和签名证书目录均被 `.gitignore` 忽略，不会随 GitHub 源码自动下载，需要在构建电脑本地准备。
+
+拉取代码并安装依赖：
+
+```powershell
+git clone -b 安卓 https://github.com/xszwow/Smartread.git
+cd Smartread
+npm install
+```
+
+### Web / 本地服务
+
+Web 端不使用 Electron 的 `main.cjs`，而是编译并启动本地 server：
+
+```powershell
+npm run build
+npm run dev
+```
+
+如需运行已编译的 server：
+
+```powershell
+npm run build
+npm run start
+```
+
+### Windows 安装包
+
+本次发布到 GitHub Release 的 Windows 安装包使用以下命令生成：
+
+```powershell
+npm run desktop:pack:win:unsigned
+```
+
+该命令会准备前端 vendor 资源、编译 TypeScript，并通过 Electron Builder 生成 NSIS 安装包。输出文件：
+
+```text
+release/SmartRead Setup 0.1.0.exe
+release/SmartRead Setup 0.1.0.exe.blockmap
+release/latest.yml
+release/win-unpacked/SmartRead.exe
+```
+
+打包完成后，我用于验证 Windows 包的命令为：
+
+```powershell
+npm run desktop:smoke:packaged
+npm run desktop:smoke:packaged:pdf-touch
+npm run desktop:smoke:packaged:epub-image-touch
+```
+
+`desktop:pack:win:unsigned` 只生成 Windows 产物，不会构建、修改或上传 Android APK。该安装包没有正式公开代码签名，其他电脑运行时可能出现 SmartScreen 提示。
+
+如果本机已有开发签名证书，可使用本地签名构建：
+
+```powershell
+npm run desktop:pack:win:dev-signed
+npm run desktop:smoke:installed
+```
+
+正式公开分发需配置非开发版 Authenticode 证书后执行：
+
+```powershell
+npm run desktop:pack:win:production-signed
+```
+
+### Android APK / AAB
+
+Android 使用 Capacitor，网页资源会先生成到 `mobile-www`，然后同步到 Android 工程。构建调试 APK：
 
 ```powershell
 npm run android:build:debug
 ```
 
-输出路径：
+该命令会自动执行移动资源同步，再调用 Gradle 生成：
 
 ```text
 android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-构建后安装：
+安装到连接的 Android 设备：
 
 ```powershell
 adb install -r .\android\app\build\outputs\apk\debug\app-debug.apk
 ```
 
-Android release 构建入口已保留：
+生成 Android release APK 或 AAB：
 
 ```powershell
 npm run android:build:release
 npm run android:build:bundle
 ```
 
-生产 release 需要配置正式 Android keystore。不要把 keystore、密码、API Key 或生产证书提交到仓库。
+输出文件：
 
-## 开发命令
+```text
+android/app/build/outputs/apk/release/app-release.apk
+android/app/build/outputs/bundle/release/app-release.aab
+```
 
-常用检查：
+当前 GitHub 中现有的 `BGsmartread.apk` 不会随 Windows 构建流程改变。面向正式分发的 Android release 需要配置生产 keystore 或 Play App Signing，不要把 keystore、密码、API Key 或生产证书提交到仓库。
+
+### 移动资源与检查
+
+只准备 Capacitor Web 资源或同步原生工程时，可运行：
+
+```powershell
+npm run mobile:prepare
+npm run mobile:sync
+```
+
+常用验证命令：
 
 ```powershell
 npm test
 npm run build
-npm run mobile:sync
-npm run android:build:debug
-```
-
-桌面端：
-
-```powershell
-npm run desktop:pack:win:dev-signed
-npm run desktop:smoke:packaged
-npm run desktop:smoke:installed
+npm run native:standalone:audit
+npm run native:backend:smoke
 ```
 
 ## 发布检查
